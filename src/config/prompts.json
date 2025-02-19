@@ -1,0 +1,5 @@
+{
+  "tradingAnalysis": {
+    "template": "Trading Context for {symbol}:\n\nBasic Information:\n- Timeframe: {timeframe}\n- Current Price: {currentPrice}\n- Price Change: {priceChange}%\n- 200 EMA: {ema200}\n\nMarket Statistics:\n- Total Candles Analyzed: {totalCandles}\n- Total EMA Crossovers: {emaCrossovers}\n- Current Position: Price is {currentPosition} 200 EMA\n\nRecent Candle Data:\n{candleData}\n\nPlease analyze the data above and provide insights in the language of the question. Focus on:\nAnd answer the question by using the data above. Do not mention about the data, just answer the question. If you don't have enough information to answer the question, say \"I don't know\".\nAnd if the question is related to the data, answer the question by using the data above."
+  }
+} 
