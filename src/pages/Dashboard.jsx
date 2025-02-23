@@ -8,7 +8,10 @@ import DatabaseExplorer from '../components/dashboard/DatabaseExplorer';
 import TopToolbar from '../components/layout/TopToolbar';
 import { useResizablePanel } from '../utils/hooks/useResizablePanel';
 import { useTheme } from '../contexts/ThemeContext';
-
+import invoker from '../utils/tauri/invoker';
+import validateConnection from '../utils/general/validation';
+import { toast } from 'react-toastify';
+import startListeningForConnectionEvents from '../utils/events/connection';
 export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
@@ -25,15 +28,37 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleConnect = (connectionDetails) => {
-    // Add new connection to connections array
-    const newConnection = {
-      id: Date.now().toString(),
-      ...connectionDetails
+  useEffect(() => {
+    const cleanup = startListeningForConnectionEvents();
+    return cleanup;
+  }, []);
+
+  const handleConnect = async (connectionDetails) => {
+    const validationErrors = validateConnection(connectionDetails);
+    
+    if (validationErrors.length > 0) {
+      validationErrors.forEach(error => {
+        toast.error(error);
+      });
+      return;
+    }
+
+    const dbConfig = {
+      config: {
+        host: connectionDetails.host,
+        port: parseInt(connectionDetails.port),
+        user: connectionDetails.username,
+        password: connectionDetails.password,
+        database: connectionDetails.database,
+        db_type: connectionDetails.type
+      }
     };
-    setConnections(prev => [...prev, newConnection]);
-    setActiveConnection(newConnection.id);
-    setIsConnectionModalOpen(false);
+
+    try {
+      await invoker('connect_database', dbConfig);
+    } catch (error) {
+      console.error('Connection error:', error);
+    }
   };
 
   const handleCloseConnection = (connectionId) => {

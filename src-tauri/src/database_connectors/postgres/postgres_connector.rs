@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tokio_postgres::{NoTls, Error, Client, Row};
+use tauri::Manager;
+use serde_json::json;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DatabaseConfig {
@@ -8,6 +10,7 @@ pub struct DatabaseConfig {
     user: String,
     password: String,
     database: String,
+    db_type: String
 }
 
 #[derive(Serialize)]
@@ -31,15 +34,32 @@ struct SchemaInfo {
 }
 
 #[tauri::command]
-pub async fn connect_database(config: DatabaseConfig) -> Result<String, String> {
+pub async fn connect_database(app_handle: tauri::AppHandle, config: DatabaseConfig) -> Result<String, String> {
     let connection_string = format!(
         "host={} port={} user={} password={} dbname={}",
         config.host, config.port, config.user, config.password, config.database
     );
 
     match tokio_postgres::connect(&connection_string, NoTls).await {
-        Ok(_) => Ok("Connected successfully".to_string()),
-        Err(e) => Err(e.to_string()),
+        Ok(_) => {
+            // Başarılı bağlantı durumunda tüm pencerelere event emit et
+            app_handle.emit_all("database-connection", json!({
+                "status": "success",
+                "message": "Connected successfully"
+            })).unwrap();
+            
+            Ok("Connected successfully".to_string())
+        },
+        Err(e) => {
+            let error_message = e.to_string();
+            // Hata durumunda tüm pencerelere event emit et
+            app_handle.emit_all("database-connection", json!({
+                "status": "error",
+                "message": &error_message
+            })).unwrap();
+            
+            Err(error_message)
+        }
     }
 }
 
