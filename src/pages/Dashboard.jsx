@@ -18,6 +18,11 @@ export default function Dashboard() {
   const [connections, setConnections] = useState([]);
   const [activeConnection, setActiveConnection] = useState(null);
   const [activePanel, setActivePanel] = useState('ai'); // 'ai' or 'query'
+  const [connectionStatus, setConnectionStatus] = useState({
+    isLoading: false,
+    message: '',
+    type: 'idle' // 'idle' | 'loading' | 'success' | 'error'
+  });
   const { isDark, toggleTheme } = useTheme();
   const { 
     panelHeight, 
@@ -34,19 +39,10 @@ export default function Dashboard() {
   }, []);
 
   const handleConnect = async (connectionDetails) => {
-    const validationErrors = validateConnection(connectionDetails);
-    
-    if (validationErrors.length > 0) {
-      validationErrors.forEach(error => {
-        toast.error(error);
-      });
-      return;
-    }
-
     const dbConfig = {
       config: {
         host: connectionDetails.host,
-        port: parseInt(connectionDetails.port),
+        port: connectionDetails.port, // This is already parsed as integer in modal
         user: connectionDetails.username,
         password: connectionDetails.password,
         database: connectionDetails.database,
@@ -54,10 +50,42 @@ export default function Dashboard() {
       }
     };
 
+    setConnectionStatus({
+      isLoading: true,
+      message: 'Connecting to database...',
+      type: 'loading'
+    });
+    
     try {
       await invoker('connect_database', dbConfig);
+      
+      // Add the new connection to the connections list
+      const newConnection = {
+        id: Date.now().toString(), // temporary ID
+        name: connectionDetails.name,
+        host: connectionDetails.host,
+        port: connectionDetails.port,
+        database: connectionDetails.database,
+        type: connectionDetails.type
+      };
+      
+      setConnections(prev => [...prev, newConnection]);
+      setActiveConnection(newConnection.id);
+      
+      setConnectionStatus({
+        isLoading: false,
+        message: 'Successfully connected to database!',
+        type: 'success'
+      });
+      
+      setIsConnectionModalOpen(false); // Close the modal on success
     } catch (error) {
       console.error('Connection error:', error);
+      setConnectionStatus({
+        isLoading: false,
+        message: `Connection failed: ${error.message}`,
+        type: 'error'
+      });
     }
   };
 
@@ -334,6 +362,21 @@ export default function Dashboard() {
                   <span>Connected to: {connections.find(c => c.id === activeConnection).host}:{connections.find(c => c.id === activeConnection).port}</span>
                   <span>Database: {connections.find(c => c.id === activeConnection).database}</span>
                 </>
+              )}
+              {connectionStatus.message && (
+                <div className={`flex items-center space-x-2 ${
+                  connectionStatus.type === 'error' ? 'text-red-400' :
+                  connectionStatus.type === 'success' ? 'text-green-400' :
+                  connectionStatus.type === 'loading' ? 'text-blue-400' : 'text-gray-400'
+                }`}>
+                  {connectionStatus.isLoading && (
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  )}
+                  <span>{connectionStatus.message}</span>
+                </div>
               )}
             </div>
             <div className="flex items-center space-x-2">

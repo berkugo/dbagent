@@ -36,21 +36,96 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
     username: '',
     password: ''
   });
+  const [errors, setErrors] = useState({});
   const { isDark } = useTheme();
+
+  const validateField = (name, value) => {
+    switch (name) {
+      case 'name':
+        return !value.trim() ? 'Connection name is required' : '';
+      case 'host':
+        if (!value.trim()) return 'Host is required';
+        // IP address regex
+        const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+        // Domain regex (basic validation)
+        const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
+        // Localhost check
+        if (value === 'localhost') return '';
+        // Check if it's either a valid IP or domain
+        if (!ipRegex.test(value) && !domainRegex.test(value)) {
+          return 'Please enter a valid IP address or domain name';
+        }
+        return '';
+      case 'port':
+        if (!value.trim()) return 'Port is required';
+        if (!/^\d+$/.test(value)) return 'Port must be a number';
+        if (parseInt(value) < 1 || parseInt(value) > 65535) return 'Port must be between 1 and 65535';
+        return '';
+      case 'database':
+        return !value.trim() ? 'Database name is required' : '';
+      case 'username':
+        return !value.trim() ? 'Username is required' : '';
+      case 'password':
+        return !value.trim() ? 'Password is required' : '';
+      default:
+        return '';
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Validate field on change
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  };
+
+  const isFormValid = () => {
+    const newErrors = {};
+    Object.keys(formData).forEach(key => {
+      const error = validateField(key, formData[key]);
+      if (error) newErrors[key] = error;
+    });
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onConnect({ ...formData, type: selectedType });
-    setStep(1);
-    setSelectedType(null);
-    setFormData({
-      name: '',
-      host: '',
-      port: '',
-      database: '',
-      username: '',
-      password: ''
+    
+    // Validate all fields before submission
+    const newErrors = {};
+    Object.keys(formData).forEach(key => {
+      const error = validateField(key, formData[key]);
+      if (error) newErrors[key] = error;
     });
+    
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length === 0) {
+      onConnect({
+        ...formData,
+        type: selectedType,
+        port: parseInt(formData.port) // Ensure port is a number
+      });
+      
+      // Reset form
+      setStep(1);
+      setSelectedType(null);
+      setFormData({
+        name: '',
+        host: '',
+        port: '',
+        database: '',
+        username: '',
+        password: ''
+      });
+      setErrors({});
+      onClose(); // Close the modal after successful submission
+    }
   };
 
   const handleClose = () => {
@@ -60,6 +135,15 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
   };
 
   if (!isOpen) return null;
+
+  const inputClassName = (fieldName) => `
+    w-full px-4 py-2 rounded-lg text-sm transition-colors
+    ${isDark 
+      ? 'bg-[#242424] border-gray-700 text-gray-200 focus:border-blue-500' 
+      : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'
+    } border focus:outline-none focus:ring-2 focus:ring-blue-500/20
+    ${errors[fieldName] ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+  `;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -124,15 +208,15 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
                   </label>
                   <input
                     type="text"
+                    name="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg text-sm transition-colors
-                      ${isDark 
-                        ? 'bg-[#242424] border-gray-700 text-gray-200 focus:border-blue-500' 
-                        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'
-                      } border focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                    onChange={handleInputChange}
+                    className={inputClassName('name')}
                     placeholder="My Database"
                   />
+                  {errors.name && (
+                    <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+                  )}
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -140,15 +224,15 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
                   </label>
                   <input
                     type="text"
+                    name="host"
                     value={formData.host}
-                    onChange={(e) => setFormData({ ...formData, host: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg text-sm transition-colors
-                      ${isDark 
-                        ? 'bg-[#242424] border-gray-700 text-gray-200 focus:border-blue-500' 
-                        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'
-                      } border focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                    onChange={handleInputChange}
+                    className={inputClassName('host')}
                     placeholder="localhost"
                   />
+                  {errors.host && (
+                    <p className="mt-1 text-sm text-red-500">{errors.host}</p>
+                  )}
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -156,15 +240,15 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
                   </label>
                   <input
                     type="text"
+                    name="port"
                     value={formData.port}
-                    onChange={(e) => setFormData({ ...formData, port: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg text-sm transition-colors
-                      ${isDark 
-                        ? 'bg-[#242424] border-gray-700 text-gray-200 focus:border-blue-500' 
-                        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'
-                      } border focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                    onChange={handleInputChange}
+                    className={inputClassName('port')}
                     placeholder="5432"
                   />
+                  {errors.port && (
+                    <p className="mt-1 text-sm text-red-500">{errors.port}</p>
+                  )}
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -172,15 +256,15 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
                   </label>
                   <input
                     type="text"
+                    name="database"
                     value={formData.database}
-                    onChange={(e) => setFormData({ ...formData, database: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg text-sm transition-colors
-                      ${isDark 
-                        ? 'bg-[#242424] border-gray-700 text-gray-200 focus:border-blue-500' 
-                        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'
-                      } border focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                    onChange={handleInputChange}
+                    className={inputClassName('database')}
                     placeholder="postgres"
                   />
+                  {errors.database && (
+                    <p className="mt-1 text-sm text-red-500">{errors.database}</p>
+                  )}
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -188,15 +272,15 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
                   </label>
                   <input
                     type="text"
+                    name="username"
                     value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg text-sm transition-colors
-                      ${isDark 
-                        ? 'bg-[#242424] border-gray-700 text-gray-200 focus:border-blue-500' 
-                        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'
-                      } border focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                    onChange={handleInputChange}
+                    className={inputClassName('username')}
                     placeholder="postgres"
                   />
+                  {errors.username && (
+                    <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+                  )}
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -204,15 +288,15 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
                   </label>
                   <input
                     type="password"
+                    name="password"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg text-sm transition-colors
-                      ${isDark 
-                        ? 'bg-[#242424] border-gray-700 text-gray-200 focus:border-blue-500' 
-                        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'
-                      } border focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                    onChange={handleInputChange}
+                    className={inputClassName('password')}
                     placeholder="••••••••"
                   />
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+                  )}
                 </div>
               </div>
 
@@ -257,9 +341,13 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
             </button>
             {step === 2 && (
               <button
-                type="button"
-                onClick={handleSubmit}
-                className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                type="submit"
+                disabled={!isFormValid()}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  !isFormValid()
+                    ? 'bg-gray-500 cursor-not-allowed'
+                    : 'bg-blue-500 hover:bg-blue-600'
+                } text-white`}
               >
                 Create Connection
               </button>
