@@ -9,8 +9,6 @@ import TopToolbar from '../components/layout/TopToolbar';
 import { useResizablePanel } from '../utils/hooks/useResizablePanel';
 import { useTheme } from '../contexts/ThemeContext';
 import invoker from '../utils/tauri/invoker';
-import validateConnection from '../utils/general/validation';
-import { toast } from 'react-toastify';
 import startListeningForConnectionEvents from '../utils/events/connection';
 export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -77,7 +75,6 @@ export default function Dashboard() {
         message: 'Successfully connected to database!',
         type: 'success'
       });
-      
       setIsConnectionModalOpen(false); // Close the modal on success
     } catch (error) {
       console.error('Connection error:', error);

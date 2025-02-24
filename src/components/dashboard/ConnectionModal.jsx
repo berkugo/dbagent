@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { validateField } from '../../utils/general/validation';
 
 const DATABASE_TYPES = [
   {
@@ -39,44 +40,11 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
   const [errors, setErrors] = useState({});
   const { isDark } = useTheme();
 
-  const validateField = (name, value) => {
-    switch (name) {
-      case 'name':
-        return !value.trim() ? 'Connection name is required' : '';
-      case 'host':
-        if (!value.trim()) return 'Host is required';
-        // IP address regex
-        const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-        // Domain regex (basic validation)
-        const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
-        // Localhost check
-        if (value === 'localhost') return '';
-        // Check if it's either a valid IP or domain
-        if (!ipRegex.test(value) && !domainRegex.test(value)) {
-          return 'Please enter a valid IP address or domain name';
-        }
-        return '';
-      case 'port':
-        if (!value.trim()) return 'Port is required';
-        if (!/^\d+$/.test(value)) return 'Port must be a number';
-        if (parseInt(value) < 1 || parseInt(value) > 65535) return 'Port must be between 1 and 65535';
-        return '';
-      case 'database':
-        return !value.trim() ? 'Database name is required' : '';
-      case 'username':
-        return !value.trim() ? 'Username is required' : '';
-      case 'password':
-        return !value.trim() ? 'Password is required' : '';
-      default:
-        return '';
-    }
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Validate field on change
+    // Validate field on change using imported validateField
     const error = validateField(name, value);
     setErrors(prev => ({
       ...prev,
@@ -96,23 +64,14 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Validate all fields before submission
-    const newErrors = {};
-    Object.keys(formData).forEach(key => {
-      const error = validateField(key, formData[key]);
-      if (error) newErrors[key] = error;
-    });
-    
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length === 0) {
+    if (isFormValid()) {
       onConnect({
         ...formData,
         type: selectedType,
-        port: parseInt(formData.port) // Ensure port is a number
+        port: parseInt(formData.port)
       });
       
-      // Reset form
+      // Reset form and close modal
       setStep(1);
       setSelectedType(null);
       setFormData({
@@ -124,7 +83,7 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
         password: ''
       });
       setErrors({});
-      onClose(); // Close the modal after successful submission
+      onClose();
     }
   };
 
@@ -312,47 +271,44 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
                   <span>Advanced Options</span>
                 </button>
               </div>
+
+              {/* Footer */}
+              <div className={`px-6 py-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} flex justify-between`}>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    isDark ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  Back
+                </button>
+                <div className="ml-auto space-x-3">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      isDark ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!isFormValid()}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      !isFormValid()
+                        ? 'bg-gray-500 cursor-not-allowed'
+                        : 'bg-blue-500 hover:bg-blue-600'
+                    } text-white`}
+                    onClick={handleSubmit}
+                  >
+                    Create Connection
+                  </button>
+                </div>
+              </div>
             </form>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className={`px-6 py-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} flex justify-between`}>
-          {step === 2 && (
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                isDark ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Back
-            </button>
-          )}
-          <div className="ml-auto space-x-3">
-            <button
-              type="button"
-              onClick={handleClose}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                isDark ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Cancel
-            </button>
-            {step === 2 && (
-              <button
-                type="submit"
-                disabled={!isFormValid()}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  !isFormValid()
-                    ? 'bg-gray-500 cursor-not-allowed'
-                    : 'bg-blue-500 hover:bg-blue-600'
-                } text-white`}
-              >
-                Create Connection
-              </button>
-            )}
-          </div>
         </div>
       </div>
     </div>
