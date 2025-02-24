@@ -1,18 +1,25 @@
 
 import { listen } from '@tauri-apps/api/event';
-import { toast } from 'react-toastify';
 
-const startListeningForConnectionEvents = () => {
+const startListeningForConnectionEvents = (connectionStatus) => {
 
     const unlisten = listen('database-connection', (event) => {
         const { status, message } = event.payload;
         
         if (status === 'success') {
-            toast.success(message);
+            connectionStatus({
+                isLoading: false,
+                message: `Connection established: ${message}`,
+                type: 'success'
+              });
         } else {
-            toast.error("Connection error.");
+            
             setTimeout(() => {
-                toast.info(message);
+                connectionStatus({
+                    isLoading: false,
+                    message: `Connection failed: ${message}`,
+                    type: 'error'
+                  });
             }, 3000);
         }
         });

@@ -23,6 +23,22 @@ export default {
           border: '#E5E7EB',
         },
       },
+      animation: {
+        'gradient-slow': 'gradient 15s ease infinite',
+        'pulse': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      keyframes: {
+        gradient: {
+          '0%, 100%': {
+            'background-size': '200% 200%',
+            'background-position': 'left center'
+          },
+          '50%': {
+            'background-size': '200% 200%',
+            'background-position': 'right center'
+          },
+        },
+      },
     },
   },
   plugins: [],

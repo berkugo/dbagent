@@ -4,6 +4,7 @@ export default function AIChat({ activeConnection }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedLLM, setSelectedLLM] = useState('deepseek');
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -19,15 +20,20 @@ export default function AIChat({ activeConnection }) {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-    setMessages(prev => [...prev, { type: 'user', content: userMessage }]);
+    setMessages(prev => [...prev, { 
+      type: 'user', 
+      content: userMessage,
+      llm: selectedLLM 
+    }]);
     setInput('');
     setIsLoading(true);
 
-    // Simulate AI response
+    // Simulate AI response with selected LLM
     setTimeout(() => {
       setMessages(prev => [...prev, {
         type: 'ai',
-        content: `SELECT * FROM planets WHERE name = '${userMessage}';`
+        content: `Using ${selectedLLM}: SELECT * FROM planets WHERE name = '${userMessage}';`,
+        llm: selectedLLM
       }]);
       setIsLoading(false);
     }, 1000);
@@ -96,6 +102,8 @@ export default function AIChat({ activeConnection }) {
                 placeholder="Ask AI to help with your query..."
                 className="flex-1 bg-[#1C1C1C] text-gray-200 rounded-lg px-4 py-2 text-sm border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+
+
               <button
                 type="submit"
                 disabled={isLoading}
@@ -106,6 +114,25 @@ export default function AIChat({ activeConnection }) {
                 </svg>
                 <span>Send</span>
               </button>
+              <div className="relative">
+                <select
+                  value={selectedLLM}
+                  onChange={(e) => setSelectedLLM(e.target.value)}
+                  className="bg-[#1C1C1C] text-gray-200 rounded-lg pl-8 pr-10 py-2 text-sm border border-gray-700 
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                    appearance-none cursor-pointer hover:bg-[#242424]"
+                >
+                  <option value="deepseek">🤖 DeepSeek</option>
+                  <option value="llama">🦙 Llama 3.2</option>
+                  <option value="gemini">✨ Gemini</option>
+                </select>
+                
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
         </form>
