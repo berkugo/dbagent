@@ -5,18 +5,32 @@ import AIChat from '../components/dashboard/AIChat';
 import Query from '../components/dashboard/Query';
 import ConnectionModal from '../components/dashboard/ConnectionModal';
 import DatabaseExplorer from '../components/dashboard/DatabaseExplorer';
-import TopToolbar from '../components/layout/TopToolbar';
 import { useResizablePanel } from '../utils/hooks/useResizablePanel';
 import { useTheme } from '../contexts/ThemeContext';
 import invoker from '../utils/tauri/invoker';
-import startListeningForConnectionEvents from '../utils/events/connection';
+import { getAllConnections, startListeningForConnectionEvents, getConnection } from '../utils/events/connection';
 import Sidebar from '../components/layout/Sidebar';
+
+// Dummy data oluştur
+const generateDummyData = () => {
+  const data = [];
+  for (let i = 1; i <= 20; i++) {
+    data.push({
+      id: i,
+      name: `Item ${i}`,
+      created_at: new Date(Date.now() - Math.random() * 10000000000).toISOString(),
+      status: ['active', 'pending', 'archived'][Math.floor(Math.random() * 3)],
+      type: ['user', 'admin', 'guest'][Math.floor(Math.random() * 3)],
+      count: Math.floor(Math.random() * 1000)
+    });
+  }
+  return data;
+};
 
 export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
-  const [connections, setConnections] = useState([]);
-  const [activeConnection, setActiveConnection] = useState(null);
+  const [activeConnectionId, setActiveConnectionId] = useState(null);
   const [activePanel, setActivePanel] = useState('ai'); // 'ai' or 'query'
   const [connectionStatus, setConnectionStatus] = useState({
     isLoading: false,
@@ -32,48 +46,44 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [selectedSchema, setSelectedSchema] = useState(null);
+  const [selectedTable, setSelectedTable] = useState(null);
+
+  // getAllConnections ile tüm bağlantıları al
+  const connections = getAllConnections();
+  console.log(connections)
 
   useEffect(() => {
-    const cleanup = startListeningForConnectionEvents(setConnectionStatus);
+    const cleanup = startListeningForConnectionEvents(setConnectionStatus, setActiveConnectionId);
     return cleanup;
   }, []);
+
+  // Aktif bağlantıyı al
+  const activeConnection = getConnection(activeConnectionId);
 
   const handleConnect = async (connectionDetails) => {
     const dbConfig = {
       config: {
         host: connectionDetails.host,
-        port: connectionDetails.port, // This is already parsed as integer in modal
+        port: connectionDetails.port,
         user: connectionDetails.username,
         password: connectionDetails.password,
         database: connectionDetails.database,
-        db_type: connectionDetails.type
+        db_type: connectionDetails.type,
+        connection_name: connectionDetails.name
       }
     };
 
-
-    
     try {
       setConnectionStatus({
         isLoading: true,
         message: 'Connecting to database...',
         type: 'loading'
       });
+      
       await invoker('connect_database', dbConfig);
-
-      // Add the new connection to the connections list
-      const newConnection = {
-        id: Date.now().toString(), // temporary ID
-        name: connectionDetails.name,
-        host: connectionDetails.host,
-        port: connectionDetails.port,
-        database: connectionDetails.database,
-        type: connectionDetails.type
-      };
+      // connectionStatus callback'i içinde connectionId set edilecek
       
-      setConnections(prev => [...prev, newConnection]);
-      setActiveConnection(newConnection.id);
-      
-      setIsConnectionModalOpen(false); // Close the modal on success
     } catch (error) {
       console.error('Connection error:', error);
       setConnectionStatus({
@@ -81,13 +91,6 @@ export default function Dashboard() {
         message: `Connection failed: ${error.toString()}`,
         type: 'error'
       });
-    }
-  };
-
-  const handleCloseConnection = (connectionId) => {
-    setConnections(prev => prev.filter(conn => conn.id !== connectionId));
-    if (activeConnection === connectionId) {
-      setActiveConnection(connections[0]?.id || null);
     }
   };
 
@@ -121,28 +124,15 @@ export default function Dashboard() {
               </span>
             </div>
             
-            {/* Navigation Buttons */}
-            <div className="flex items-center space-x-2">
-              <button className="p-1.5 text-gray-400 hover:bg-gray-700 rounded">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button className="p-1.5 text-gray-400 hover:bg-gray-700 rounded">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-            </div>
 
             {/* Tabs */}
             <div className="flex items-center space-x-1 overflow-x-auto">
-              {connections.map((conn) => (
-                <div key={conn.id} className="flex items-center">
+              {connections.map((connection) => (
+                <div key={connection.connectionInfo.name} className="flex items-center">
                   <button
-                    onClick={() => setActiveConnection(conn.id)}
+                    onClick={() => setActiveConnectionId(connection.connectionId)}
                     className={`px-3 py-1.5 text-sm rounded-lg flex items-center space-x-2 transition-all ${
-                      activeConnection === conn.id
+                      activeConnectionId === connection.connectionId
                         ? isDark 
                             ? 'text-white bg-blue-500/20 text-blue-400'
                             : 'bg-blue-50 text-blue-600'
@@ -151,24 +141,10 @@ export default function Dashboard() {
                             : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    <span>{conn.type === 'PostgreSQL' ? '🐘' : conn.type === 'MongoDB' ? '🍃' : '💾'}</span>
-                    <span>{conn.name}</span>
-                    {/* Close button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCloseConnection(conn.id);
-                      }}
-                      className="ml-2 p-0.5 hover:bg-gray-600 rounded"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    <span>{connection.connectionInfo.name}</span>
                   </button>
                 </div>
               ))}
-              
             </div>
           </div>
 
@@ -204,7 +180,14 @@ export default function Dashboard() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                     </button>
+                    {/* Navigation Buttons */}
+                    <button className="p-1.5 text-gray-400 hover:bg-gray-700 rounded">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
                   </div>
+                
                   <div className="relative">
                     <input
                       type="text"
@@ -213,11 +196,15 @@ export default function Dashboard() {
                     />
                   </div>
                 </div>
+                
                 <div className="flex-1 overflow-y-auto">
                   <DatabaseExplorer 
-                    connection={connections.find(c => c.id === activeConnection)}
+                    connectionId={activeConnectionId}
+                    onSchemaSelect={setSelectedSchema}
+                    onTableSelect={setSelectedTable}
                   />
                 </div>
+                
               </div>
             </aside>
 
@@ -228,11 +215,36 @@ export default function Dashboard() {
               {/* Breadcrumb & Actions */}
               <div className="p-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-sm">
-                  <span className="text-gray-400">solarsystem.bd</span>
-                  <span className="text-gray-600">/</span>
-                  <span className="text-gray-400">JIRA-3 List countries</span>
-                  <span className="text-gray-600">/</span>
-                  <span className="text-gray-200">Planets</span>
+                  {activeConnection ? (
+                    <>
+                      {/* Database Name */}
+                      <span className="text-gray-400">
+                        {activeConnection.connectionInfo.database}
+                      </span>
+                      
+                      {selectedSchema && (
+                        <>
+                          <span className="text-gray-600">/</span>
+                          {/* Schema Name */}
+                          <span className="text-gray-400">
+                            {selectedSchema}
+                          </span>
+                        </>
+                      )}
+                      
+                      {selectedTable && (
+                        <>
+                          <span className="text-gray-600">/</span>
+                          {/* Table Name */}
+                          <span className="text-gray-200">
+                            {selectedTable}
+                          </span>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-gray-400">No database selected</span>
+                  )}
                 </div>
                 <div className="flex items-center space-x-2">
                   <button className="p-1.5 text-gray-400 hover:bg-gray-700 rounded">
@@ -244,10 +256,176 @@ export default function Dashboard() {
                     Export
                   </button>
                 </div>
+                
               </div>
 
               {/* Document View */}
+              <div className="p-4">
+                <div className={`rounded-lg shadow-sm ${
+                  isDark ? 'bg-[#242424]' : 'bg-white'
+                }`}>
+                  <div className={`p-4 border-b ${
+                    isDark ? 'border-gray-700' : 'border-gray-200'
+                  }`}>
+                    <h3 className={`text-lg font-medium ${
+                      isDark ? 'text-gray-200' : 'text-gray-900'
+                    }`}>
+                      {selectedTable || 'No table selected'}
+                    </h3>
+                  </div>
 
+                  {selectedTable && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className={`text-sm ${isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'}`}>
+                          <tr>
+                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                              isDark ? 'text-gray-400' : 'text-gray-500'
+                            }`}>ID</th>
+                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                              isDark ? 'text-gray-400' : 'text-gray-500'
+                            }`}>Name</th>
+                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                              isDark ? 'text-gray-400' : 'text-gray-500'
+                            }`}>Created At</th>
+                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                              isDark ? 'text-gray-400' : 'text-gray-500'
+                            }`}>Status</th>
+                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                              isDark ? 'text-gray-400' : 'text-gray-500'
+                            }`}>Type</th>
+                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                              isDark ? 'text-gray-400' : 'text-gray-500'
+                            }`}>Count</th>
+                            <th className={`sticky top-0 px-6 py-3.5 text-right font-medium ${
+                              isDark ? 'text-gray-400' : 'text-gray-500'
+                            }`}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                          {generateDummyData().map((row) => (
+                            <tr 
+                              key={row.id}
+                              className={`text-sm transition-colors ${
+                                isDark 
+                                  ? 'hover:bg-gray-800/50' 
+                                  : 'hover:bg-gray-50'
+                              }`}
+                            >
+                              <td className={`px-6 py-4 ${
+                                isDark ? 'text-gray-300' : 'text-gray-900'
+                              } font-medium`}>
+                                #{row.id.toString().padStart(4, '0')}
+                              </td>
+                              <td className={`px-6 py-4 ${
+                                isDark ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                <div className="flex items-center space-x-3">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                    isDark ? 'bg-gray-700' : 'bg-gray-100'
+                                  }`}>
+                                    <span className="text-sm font-medium">
+                                      {row.name.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <span>{row.name}</span>
+                                </div>
+                              </td>
+                              <td className={`px-6 py-4 ${
+                                isDark ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                <div className="flex flex-col">
+                                  <span>{new Date(row.created_at).toLocaleDateString()}</span>
+                                  <span className={`text-xs ${
+                                    isDark ? 'text-gray-500' : 'text-gray-500'
+                                  }`}>
+                                    {new Date(row.created_at).toLocaleTimeString()}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize
+                                  ${row.status === 'active' 
+                                    ? isDark 
+                                      ? 'bg-green-500/10 text-green-400' 
+                                      : 'bg-green-100 text-green-800'
+                                    : row.status === 'pending'
+                                    ? isDark
+                                      ? 'bg-yellow-500/10 text-yellow-400'
+                                      : 'bg-yellow-100 text-yellow-800'
+                                    : isDark
+                                      ? 'bg-gray-500/10 text-gray-400'
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full mr-1.5
+                                    ${row.status === 'active' 
+                                      ? 'bg-green-400' 
+                                      : row.status === 'pending'
+                                      ? 'bg-yellow-400'
+                                      : 'bg-gray-400'
+                                    }`}
+                                  />
+                                  {row.status}
+                                </span>
+                              </td>
+                              <td className={`px-6 py-4 ${
+                                isDark ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium capitalize
+                                  ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                                  {row.type}
+                                </span>
+                              </td>
+                              <td className={`px-6 py-4 ${
+                                isDark ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                <div className="flex items-center space-x-1">
+                                  <span className="font-medium">{row.count}</span>
+                                  <span className={`text-xs ${
+                                    isDark ? 'text-gray-500' : 'text-gray-500'
+                                  }`}>items</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end space-x-2">
+                                  <button className={`p-1.5 rounded-lg transition-colors ${
+                                    isDark 
+                                      ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300' 
+                                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                                  }`}>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                  </button>
+                                  <button className={`p-1.5 rounded-lg transition-colors ${
+                                    isDark 
+                                      ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300' 
+                                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                                  }`}>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                  </button>
+                                  <button className={`p-1.5 rounded-lg transition-colors ${
+                                    isDark 
+                                      ? 'hover:bg-red-500/10 text-red-400 hover:text-red-300' 
+                                      : 'hover:bg-red-50 text-red-500 hover:text-red-700'
+                                  }`}>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
             </main>
           </div>
 
@@ -303,9 +481,9 @@ export default function Dashboard() {
           {/* Panels */}
           <div {...panelProps}>
             {activePanel === 'ai' ? (
-              <AIChat activeConnection={connections.find(c => c.id === activeConnection)} />
+              <AIChat activeConnection={connections.find(c => c.connectionId === activeConnectionId)} />
             ) : (
-              <Query activeConnection={connections.find(c => c.id === activeConnection)} />
+              <Query activeConnection={connections.find(c => c.connectionId === activeConnectionId)} />
             )}
           </div>
 
@@ -317,27 +495,27 @@ export default function Dashboard() {
           }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {activeConnection && connections.find(c => c.id === activeConnection) && (
+                {activeConnectionId && connections.find(c => c.connectionId === activeConnectionId) && (
                   <>
                     <span className="text-sm font-medium">
-                      Connected to: {connections.find(c => c.id === activeConnection).host}:{connections.find(c => c.id === activeConnection).port}
+                      Connected to: {connections.find(c => c.connectionId === activeConnectionId).connectionInfo.host}:{connections.find(c => c.connectionId === activeConnectionId).connectionInfo.port}
                     </span>
                     <span className="text-sm font-medium">
-                      Database: {connections.find(c => c.id === activeConnection).database}
+                      Database: {connections.find(c => c.connectionId === activeConnectionId).connectionInfo.database}
                     </span>
                   </>
                 )}
                 {connectionStatus.message && (
-  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm border
-    ${connectionStatus.type === 'error' 
-      ? 'bg-red-950/30 text-red-400 border-red-800/30' :
-    connectionStatus.type === 'success' 
-      ? 'bg-green-950/30 text-green-400 border-green-800/30' :
-    connectionStatus.type === 'loading' 
-      ? 'bg-blue-950/30 text-blue-400 border-blue-800/30' : 
-      'bg-gray-800/30 text-gray-400 border-gray-700/30'
-    }`
-  }>
+    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm border
+      ${connectionStatus.type === 'error' 
+        ? 'bg-red-950/30 text-red-400 border-red-800/30' :
+      connectionStatus.type === 'success' 
+        ? 'bg-green-950/30 text-green-400 border-green-800/30' :
+      connectionStatus.type === 'loading' 
+        ? 'bg-blue-950/30 text-blue-400 border-blue-800/30' : 
+        'bg-gray-800/30 text-gray-400 border-gray-700/30'
+      }`
+    }>
     {connectionStatus.isLoading ? (
       <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
         <circle 

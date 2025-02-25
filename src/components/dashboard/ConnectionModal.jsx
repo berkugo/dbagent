@@ -172,6 +172,7 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
                     onChange={handleInputChange}
                     className={inputClassName('name')}
                     placeholder="My Database"
+                    autoCapitalize="none"
                   />
                   {errors.name && (
                     <p className="mt-1 text-sm text-red-500">{errors.name}</p>
@@ -188,6 +189,7 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
                     onChange={handleInputChange}
                     className={inputClassName('host')}
                     placeholder="localhost"
+                    autoCapitalize="none"
                   />
                   {errors.host && (
                     <p className="mt-1 text-sm text-red-500">{errors.host}</p>
@@ -220,6 +222,7 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
                     onChange={handleInputChange}
                     className={inputClassName('database')}
                     placeholder="postgres"
+                    autoCapitalize="none"
                   />
                   {errors.database && (
                     <p className="mt-1 text-sm text-red-500">{errors.database}</p>
@@ -236,6 +239,7 @@ export default function ConnectionModal({ isOpen, onClose, onConnect }) {
                     onChange={handleInputChange}
                     className={inputClassName('username')}
                     placeholder="postgres"
+                    autoCapitalize="none"
                   />
                   {errors.username && (
                     <p className="mt-1 text-sm text-red-500">{errors.username}</p>

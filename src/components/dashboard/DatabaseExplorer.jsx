@@ -1,4 +1,23 @@
 import { useState } from 'react';
+import {getConnection } from '../../utils/events/connection';
+import { 
+  FaDatabase, 
+  FaTable, 
+  FaProjectDiagram,
+  FaSearch 
+} from 'react-icons/fa';
+import { 
+  BiCodeBlock, 
+  BiCube 
+} from 'react-icons/bi';
+import { 
+  VscSymbolClass, 
+  VscPreview 
+} from 'react-icons/vsc';
+import { 
+  TbBrandMongodb, 
+  TbSql 
+} from 'react-icons/tb';
 
 const ChevronIcon = ({ isOpen }) => (
   <svg 
@@ -11,14 +30,19 @@ const ChevronIcon = ({ isOpen }) => (
   </svg>
 );
 
-const TreeItem = ({ label, icon, children }) => {
+const TreeItem = ({ label, icon, children, onClick }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div>
       <div 
         className="flex items-center space-x-1.5 px-2 py-1.5 text-gray-400 hover:bg-gray-800 rounded cursor-pointer text-[13px] group"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (onClick) {
+            onClick();
+          }
+        }}
       >
         {children && (
           <ChevronIcon isOpen={isOpen} className="w-3 h-3 text-gray-500 group-hover:text-gray-300" />
@@ -35,8 +59,17 @@ const TreeItem = ({ label, icon, children }) => {
   );
 };
 
-export default function DatabaseExplorer({ connection }) {
+
+export default function DatabaseExplorer({ 
+  connectionId, 
+  onSchemaSelect, 
+  onTableSelect 
+}) {
+  console.log("connectionid", connectionId)
+  const connection = getConnection(connectionId);
+
   if (!connection) {
+    console.log(connection)
     return (
       <div className="text-gray-500 text-sm p-4 text-center">
         No database connected
@@ -46,73 +79,94 @@ export default function DatabaseExplorer({ connection }) {
 
   const getDBIcon = (type) => {
     switch (type) {
-      case 'PostgreSQL': return '🐘';
-      case 'MongoDB': return '🍃';
-      case 'MySQL': return '🐬';
-      case 'MariaDB': return '🐋';
-      default: return '📁';
+      case 'PostgreSQL':
+        return <TbBrandMongodb className="w-4 h-4 text-blue-400" />;
+      case 'MongoDB':
+        return <TbBrandMongodb className="w-4 h-4 text-green-500" />;
+      case 'MySQL':
+        return <TbSql className="w-4 h-4 text-orange-500" />;
+      case 'MariaDB':
+        return <TbSql className="w-4 h-4 text-brown-500" />;
+      default:
+        return <FaDatabase className="w-4 h-4 text-gray-400" />;
     }
   };
 
   return (
     <div className="p-4 space-y-2">
       <TreeItem 
-        label={connection.name} 
-        icon={getDBIcon(connection.type)}
+        label={connection.connectionInfo.name} 
+        icon={getDBIcon(connection.connectionInfo.type)}
       >
-        <TreeItem label="Tables" icon="📋">
-          <TreeItem label="users" icon="🗃️" />
-          <TreeItem label="products" icon="🗃️" />
-          <TreeItem label="orders" icon="🗃️" />
-        </TreeItem>
-        
-        <TreeItem label="Views" icon="👁️">
-          <TreeItem label="active_users" icon="📊" />
-          <TreeItem label="monthly_sales" icon="📊" />
-        </TreeItem>
-        
-        <TreeItem label="Functions" icon="⚡">
-          <TreeItem label="calculate_total" icon="λ" />
-          <TreeItem label="update_timestamp" icon="λ" />
-        </TreeItem>
-        
-        <TreeItem label="Triggers" icon="🔄">
-          <TreeItem label="before_insert_users" icon="⚡" />
-          <TreeItem label="after_update_orders" icon="⚡" />
-        </TreeItem>
-        
-        <TreeItem label="Indexes" icon="🔍">
-          <TreeItem label="idx_users_email" icon="📇" />
-          <TreeItem label="idx_orders_date" icon="📇" />
-        </TreeItem>
+        {connection.getSchemas().map(schema => (
+          <TreeItem 
+            key={schema.name} 
+            label={schema.name} 
+            icon={<BiCube className="w-4 h-4 text-purple-400" />}
+            onClick={() => onSchemaSelect(schema.name)}
+          >
+            {/* Tables */}
+            <TreeItem 
+              label="Tables" 
+              icon={<FaTable className="w-4 h-4 text-blue-400" />}
+            >
+              {connection.getTablesBySchema(schema.name).map(table => (
+                <TreeItem 
+                  key={table.name}
+                  label={table.name} 
+                  icon={<VscSymbolClass className="w-4 h-4 text-green-400" />}
+                  onClick={() => onTableSelect(table.name)}
+                />
+              ))}
+            </TreeItem>
 
-        {connection.type === 'PostgreSQL' && (
-          <>
-            <TreeItem label="Schemas" icon="📚">
-              <TreeItem label="public" icon="📂" />
-              <TreeItem label="auth" icon="📂" />
+            {/* Functions */}
+            <TreeItem 
+              label="Functions" 
+              icon={<BiCodeBlock className="w-4 h-4 text-yellow-400" />}
+            >
+              {connection.getFunctionsBySchema(schema.name).map(func => (
+                <TreeItem 
+                  key={func.name}
+                  label={`${func.name}(${func.arguments})`} 
+                  icon={<BiCodeBlock className="w-4 h-4 text-yellow-400" />}
+                />
+              ))}
             </TreeItem>
-            
-            <TreeItem label="Extensions" icon="🧩">
-              <TreeItem label="uuid-ossp" icon="📦" />
-              <TreeItem label="pgcrypto" icon="📦" />
-            </TreeItem>
-          </>
-        )}
 
-        {connection.type === 'MongoDB' && (
-          <>
-            <TreeItem label="Collections" icon="📚">
-              <TreeItem label="users" icon="📂" />
-              <TreeItem label="products" icon="📂" />
-            </TreeItem>
-            
-            <TreeItem label="Indexes" icon="🔍">
-              <TreeItem label="users_email_1" icon="📇" />
-              <TreeItem label="products_sku_1" icon="📇" />
-            </TreeItem>
-          </>
-        )}
+            {/* Views */}
+            {schema.views && (
+              <TreeItem 
+                label="Views" 
+                icon={<VscPreview className="w-4 h-4 text-indigo-400" />}
+              >
+                {schema.views.map(view => (
+                  <TreeItem 
+                    key={view.name}
+                    label={view.name} 
+                    icon={<VscPreview className="w-4 h-4 text-indigo-400" />}
+                  />
+                ))}
+              </TreeItem>
+            )}
+
+            {/* Indexes */}
+            {schema.indexes && (
+              <TreeItem 
+                label="Indexes" 
+                icon={<FaSearch className="w-4 h-4 text-pink-400" />}
+              >
+                {schema.indexes.map(index => (
+                  <TreeItem 
+                    key={index.name}
+                    label={index.name} 
+                    icon={<FaSearch className="w-4 h-4 text-pink-400" />}
+                  />
+                ))}
+              </TreeItem>
+            )}
+          </TreeItem>
+        ))}
       </TreeItem>
     </div>
   );
