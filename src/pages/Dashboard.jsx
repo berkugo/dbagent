@@ -10,6 +10,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import invoker from '../utils/tauri/invoker';
 import { getAllConnections, startListeningForConnectionEvents, getConnection } from '../utils/events/connection';
 import Sidebar from '../components/layout/Sidebar';
+import Footer from '../components/layout/Footer';
 
 // Dummy data oluştur
 const generateDummyData = () => {
@@ -101,379 +102,309 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'}`}>
+    <div className={`h-screen flex flex-col ${isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'}`}>
       <Sidebar />
-      <div className="ml-16">
-        {/* App Bar */}
-        <header className={`h-14 border-b ${
-          isDark 
-            ? 'bg-[#242424] border-gray-700' 
-            : 'bg-white border-gray-200 shadow-sm'
-          } flex items-center px-4 transition-colors duration-200`}>
-          <div className="flex items-center space-x-4">
-            {/* Logo */}
-            <div className="flex items-center space-x-1 font-bold text-lg">
-              <div className="grid grid-cols-2 gap-0.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-blue-500"></div>
-                <div className="w-2.5 h-2.5 rounded-sm bg-green-500"></div>
-                <div className="w-2.5 h-2.5 rounded-sm bg-purple-500"></div>
-                <div className="w-2.5 h-2.5 rounded-sm bg-orange-500"></div>
-              </div>
-              <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-orange-500 text-transparent bg-clip-text">
-                DBMind
-              </span>
-            </div>
-            
-
-            {/* Tabs */}
-            <div className="flex items-center space-x-1 overflow-x-auto">
-              {connections.map((connection) => (
-                <div key={connection.connectionInfo.name} className="flex items-center">
-                  <button
-                    onClick={() => setActiveConnectionId(connection.connectionId)}
-                    className={`px-3 py-1.5 text-sm rounded-lg flex items-center space-x-2 transition-all ${
-                      activeConnectionId === connection.connectionId
-                        ? isDark 
-                            ? 'text-white bg-blue-500/20 text-blue-400'
-                            : 'bg-blue-50 text-blue-600'
-                        : isDark
-                            ? 'text-gray-400 hover:bg-gray-800'
-                            : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span>{connection.connectionInfo.name}</span>
-                  </button>
+      <div className="flex-1 flex">
+        <Sidebar />
+        <div className="flex-1 flex flex-col ml-16">
+          {/* App Bar */}
+          <header className={`h-14 border-b ${
+            isDark 
+              ? 'bg-[#242424] border-gray-700' 
+              : 'bg-white border-gray-200 shadow-sm'
+            } flex items-center px-4 transition-colors duration-200`}>
+            <div className="flex items-center space-x-4">
+              {/* Logo */}
+              <div className="flex items-center space-x-1 font-bold text-lg">
+                <div className="grid grid-cols-2 gap-0.5">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-blue-500"></div>
+                  <div className="w-2.5 h-2.5 rounded-sm bg-green-500"></div>
+                  <div className="w-2.5 h-2.5 rounded-sm bg-purple-500"></div>
+                  <div className="w-2.5 h-2.5 rounded-sm bg-orange-500"></div>
                 </div>
-              ))}
+                <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-orange-500 text-transparent bg-clip-text">
+                  DBMind
+                </span>
+              </div>
+              
+
+              {/* Tabs */}
+              <div className="flex items-center space-x-1 overflow-x-auto">
+                {connections.map((connection) => (
+                  <div key={connection.connectionInfo.name} className="flex items-center">
+                    <button
+                      onClick={() => setActiveConnectionId(connection.connectionId)}
+                      className={`px-3 py-1.5 text-sm rounded-lg flex items-center space-x-2 transition-all ${
+                        activeConnectionId === connection.connectionId
+                          ? isDark 
+                              ? 'text-white bg-blue-500/20 text-blue-400'
+                              : 'bg-blue-50 text-blue-600'
+                          : isDark
+                              ? 'text-gray-400 hover:bg-gray-800'
+                              : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <span>{connection.connectionInfo.name}</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Right Side Controls */}
-          <div className="ml-auto flex items-center space-x-3">
-            <button 
-              onClick={() => setIsConnectionModalOpen(true)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+            {/* Right Side Controls */}
+            <div className="ml-auto flex items-center space-x-3">
+              <button 
+                onClick={() => setIsConnectionModalOpen(true)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  isDark
+                  ? 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'
+                  : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                }`}
+              >
+                <span>Create Connection</span>
+              </button>
+            </div>
+          </header>
+
+          <div className="flex flex-col h-[calc(100vh-3.5rem)]">
+            <div className="flex flex-1 min-h-0">
+              {/* Sidebar */}
+              <aside className={`w-64 transition-all duration-300 flex flex-col ${
                 isDark
-                ? 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'
-                : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-              }`}
-            >
-              <span>Create Connection</span>
-            </button>
-          </div>
-        </header>
+                ? 'bg-[#242424] border-gray-700'
+                : 'bg-white border-gray-200 shadow-sm'
+              } border-r ${isSidebarOpen ? 'translate-x-0' : '-translate-x-64'}`}>
+                <div className="p-4 border-b border-gray-700">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-gray-200 font-medium">Database Explorer</h2>
+                    <button className="p-1 text-gray-400 hover:bg-gray-700 rounded">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </button>
+                  </div>
+                
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search database objects..."
+                      className="w-full bg-[#242424] text-gray-200 text-sm px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex-1 overflow-auto">
+                  <DatabaseExplorer 
+                    connectionId={activeConnectionId}
+                    onSchemaSelect={setSelectedSchema}
+                    onTableSelect={setSelectedTable}
+                  />
+                </div>
+              </aside>
 
-        <div className="flex flex-col h-[calc(100vh-3.5rem)]">
-          <div className="flex flex-1 min-h-0">
-            {/* Sidebar */}
-            <aside className={`w-64 transition-all duration-300 flex flex-col ${
+              {/* Main Content */}
+              <main className={`flex-1 overflow-auto ${
+                isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'
+              }`}>
+                {/* Breadcrumb & Actions */}
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-sm">
+                    {activeConnection ? (
+                      <>
+                        {/* Database Name */}
+                        <span className="text-gray-400">
+                          {activeConnection.connectionInfo.database}
+                        </span>
+                        
+                        {selectedSchema && (
+                          <>
+                            <span className="text-gray-600">/</span>
+                            {/* Schema Name */}
+                            <span className="text-gray-400">
+                              {selectedSchema}
+                            </span>
+                          </>
+                        )}
+                        
+                        {selectedTable && (
+                          <>
+                            <span className="text-gray-600">/</span>
+                            {/* Table Name */}
+                            <span className="text-gray-200">
+                              {selectedTable}
+                            </span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-gray-400">No database selected</span>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button className="p-1.5 text-gray-400 hover:bg-gray-700 rounded">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
+                      </svg>
+                    </button>
+                    <button className="px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600">
+                      Export
+                    </button>
+                  </div>
+                  
+                </div>
+
+                {/* Document View */}
+                <div className="p-4">
+                  <div className={`rounded-lg shadow-sm ${
+                    isDark ? 'bg-[#242424]' : 'bg-white'
+                  }`}>
+                    <div className={`p-4 border-b ${
+                      isDark ? 'border-gray-700' : 'border-gray-200'
+                    }`}>
+                      <h3 className={`text-lg font-medium ${
+                        isDark ? 'text-gray-200' : 'text-gray-900'
+                      }`}>
+                        {selectedTable || 'No table selected'}
+                      </h3>
+                    </div>
+
+                    {selectedTable && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className={`text-sm ${
+                            isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'
+                          }`}>
+                            <tr>
+                              <th className={`px-4 py-3 text-left font-medium ${
+                                isDark ? 'text-gray-400' : 'text-gray-500'
+                              }`}>ID</th>
+                              <th className={`px-4 py-3 text-left font-medium ${
+                                isDark ? 'text-gray-400' : 'text-gray-500'
+                              }`}>Name</th>
+                              <th className={`px-4 py-3 text-left font-medium ${
+                                isDark ? 'text-gray-400' : 'text-gray-500'
+                              }`}>Created At</th>
+                              <th className={`px-4 py-3 text-left font-medium ${
+                                isDark ? 'text-gray-400' : 'text-gray-500'
+                              }`}>Status</th>
+                              <th className={`px-4 py-3 text-left font-medium ${
+                                isDark ? 'text-gray-400' : 'text-gray-500'
+                              }`}>Type</th>
+                              <th className={`px-4 py-3 text-left font-medium ${
+                                isDark ? 'text-gray-400' : 'text-gray-500'
+                              }`}>Count</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-700">
+                            {generateDummyData().map((row) => (
+                              <tr 
+                                key={row.id}
+                                className={`text-sm ${
+                                  isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
+                                }`}
+                              >
+                                <td className={`px-4 py-3 ${
+                                  isDark ? 'text-gray-300' : 'text-gray-900'
+                                }`}>{row.id}</td>
+                                <td className={`px-4 py-3 ${
+                                  isDark ? 'text-gray-300' : 'text-gray-900'
+                                }`}>{row.name}</td>
+                                <td className={`px-4 py-3 ${
+                                  isDark ? 'text-gray-300' : 'text-gray-900'
+                                }`}>{new Date(row.created_at).toLocaleString()}</td>
+                                <td className="px-4 py-3">
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                                    ${row.status === 'active' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : row.status === 'pending'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                    {row.status}
+                                  </span>
+                                </td>
+                                <td className={`px-4 py-3 ${
+                                  isDark ? 'text-gray-300' : 'text-gray-900'
+                                }`}>{row.type}</td>
+                                <td className={`px-4 py-3 ${
+                                  isDark ? 'text-gray-300' : 'text-gray-900'
+                                }`}>{row.count}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </main>
+            </div>
+
+            {/* Panel Toggle */}
+            <div className={`border-t flex items-center px-4 ${
               isDark
               ? 'bg-[#242424] border-gray-700'
               : 'bg-white border-gray-200 shadow-sm'
-            } border-r ${isSidebarOpen ? 'translate-x-0' : '-translate-x-64'}`}>
-              <div className="p-4 border-b border-gray-700">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-gray-200 font-medium">Database Explorer</h2>
-                  <button className="p-1 text-gray-400 hover:bg-gray-700 rounded">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </button>
-                </div>
-              
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search database objects..."
-                    className="w-full bg-[#242424] text-gray-200 text-sm px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex-1 overflow-auto">
-                <DatabaseExplorer 
-                  connectionId={activeConnectionId}
-                  onSchemaSelect={setSelectedSchema}
-                  onTableSelect={setSelectedTable}
-                />
-              </div>
-            </aside>
-
-            {/* Main Content */}
-            <main className={`flex-1 overflow-auto ${
-              isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'
             }`}>
-              {/* Breadcrumb & Actions */}
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-sm">
-                  {activeConnection ? (
-                    <>
-                      {/* Database Name */}
-                      <span className="text-gray-400">
-                        {activeConnection.connectionInfo.database}
-                      </span>
-                      
-                      {selectedSchema && (
-                        <>
-                          <span className="text-gray-600">/</span>
-                          {/* Schema Name */}
-                          <span className="text-gray-400">
-                            {selectedSchema}
-                          </span>
-                        </>
-                      )}
-                      
-                      {selectedTable && (
-                        <>
-                          <span className="text-gray-600">/</span>
-                          {/* Table Name */}
-                          <span className="text-gray-200">
-                            {selectedTable}
-                          </span>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-gray-400">No database selected</span>
-                  )}
-                </div>
+              <button
+                onClick={() => setActivePanel('ai')}
+                className={`px-4 py-2.5 text-sm font-medium relative ${
+                  activePanel === 'ai'
+                    ? 'text-blue-400'
+                    : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
+                }`}
+              >
                 <div className="flex items-center space-x-2">
-                  <button className="p-1.5 text-gray-400 hover:bg-gray-700 rounded">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
-                    </svg>
-                  </button>
-                  <button className="px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600">
-                    Export
-                  </button>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span>AI Assistant</span>
                 </div>
-                
-              </div>
-
-              {/* Document View */}
-              <div className="p-4">
-                <div className={`rounded-lg shadow-sm ${
-                  isDark ? 'bg-[#242424]' : 'bg-white'
-                }`}>
-                  <div className={`p-4 border-b ${
-                    isDark ? 'border-gray-700' : 'border-gray-200'
-                  }`}>
-                    <h3 className={`text-lg font-medium ${
-                      isDark ? 'text-gray-200' : 'text-gray-900'
-                    }`}>
-                      {selectedTable || 'No table selected'}
-                    </h3>
-                  </div>
-
-                  {selectedTable && (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className={`text-sm ${
-                          isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'
-                        }`}>
-                          <tr>
-                            <th className={`px-4 py-3 text-left font-medium ${
-                              isDark ? 'text-gray-400' : 'text-gray-500'
-                            }`}>ID</th>
-                            <th className={`px-4 py-3 text-left font-medium ${
-                              isDark ? 'text-gray-400' : 'text-gray-500'
-                            }`}>Name</th>
-                            <th className={`px-4 py-3 text-left font-medium ${
-                              isDark ? 'text-gray-400' : 'text-gray-500'
-                            }`}>Created At</th>
-                            <th className={`px-4 py-3 text-left font-medium ${
-                              isDark ? 'text-gray-400' : 'text-gray-500'
-                            }`}>Status</th>
-                            <th className={`px-4 py-3 text-left font-medium ${
-                              isDark ? 'text-gray-400' : 'text-gray-500'
-                            }`}>Type</th>
-                            <th className={`px-4 py-3 text-left font-medium ${
-                              isDark ? 'text-gray-400' : 'text-gray-500'
-                            }`}>Count</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-700">
-                          {generateDummyData().map((row) => (
-                            <tr 
-                              key={row.id}
-                              className={`text-sm ${
-                                isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
-                              }`}
-                            >
-                              <td className={`px-4 py-3 ${
-                                isDark ? 'text-gray-300' : 'text-gray-900'
-                              }`}>{row.id}</td>
-                              <td className={`px-4 py-3 ${
-                                isDark ? 'text-gray-300' : 'text-gray-900'
-                              }`}>{row.name}</td>
-                              <td className={`px-4 py-3 ${
-                                isDark ? 'text-gray-300' : 'text-gray-900'
-                              }`}>{new Date(row.created_at).toLocaleString()}</td>
-                              <td className="px-4 py-3">
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                                  ${row.status === 'active' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : row.status === 'pending'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                  }`}>
-                                  {row.status}
-                                </span>
-                              </td>
-                              <td className={`px-4 py-3 ${
-                                isDark ? 'text-gray-300' : 'text-gray-900'
-                              }`}>{row.type}</td>
-                              <td className={`px-4 py-3 ${
-                                isDark ? 'text-gray-300' : 'text-gray-900'
-                              }`}>{row.count}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </main>
-          </div>
-
-          {/* Panel Toggle */}
-          <div className={`border-t flex items-center px-4 ${
-            isDark
-            ? 'bg-[#242424] border-gray-700'
-            : 'bg-white border-gray-200 shadow-sm'
-          }`}>
-            <button
-              onClick={() => setActivePanel('ai')}
-              className={`px-4 py-2.5 text-sm font-medium relative ${
-                activePanel === 'ai'
-                  ? 'text-blue-400'
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span>AI Assistant</span>
-              </div>
-              {activePanel === 'ai' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />
-              )}
-            </button>
-            <button
-              onClick={() => setActivePanel('query')}
-              className={`px-4 py-2.5 text-sm font-medium relative ${
-                activePanel === 'query'
-                  ? 'text-blue-400'
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7z" />
-                </svg>
-                <span>Query Editor</span>
-              </div>
-              {activePanel === 'query' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />
-              )}
-            </button>
-          </div>
-
-          {/* Resizable Handle */}
-          <div {...resizeHandleProps}>
-            <div className="w-20 h-1 rounded-full bg-gray-600 group-hover:bg-blue-500/50" />
-          </div>
-
-          {/* Panels */}
-          <div {...panelProps}>
-            {activePanel === 'ai' ? (
-              <AIChat activeConnection={connections.find(c => c.connectionId === activeConnectionId)} />
-            ) : (
-              <Query activeConnection={connections.find(c => c.connectionId === activeConnectionId)} />
-            )}
-          </div>
-
-          {/* Footer */}
-          <footer className={`text-sm px-4 py-2 border-t ${
-            isDark
-            ? 'bg-[#242424] text-gray-400 border-gray-700'
-            : 'bg-white text-gray-600 border-gray-200 shadow-sm'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {activeConnectionId && connections.find(c => c.connectionId === activeConnectionId) && (
-                  <>
-                    <span className="text-sm font-medium">
-                      Connected to: {connections.find(c => c.connectionId === activeConnectionId).connectionInfo.host}:{connections.find(c => c.connectionId === activeConnectionId).connectionInfo.port}
-                    </span>
-                    <span className="text-sm font-medium">
-                      Database: {connections.find(c => c.connectionId === activeConnectionId).connectionInfo.database}
-                    </span>
-                  </>
+                {activePanel === 'ai' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />
                 )}
-                {connectionStatus.message && (
-    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm border
-      ${connectionStatus.type === 'error' 
-        ? 'bg-red-950/30 text-red-400 border-red-800/30' :
-      connectionStatus.type === 'success' 
-        ? 'bg-green-950/30 text-green-400 border-green-800/30' :
-      connectionStatus.type === 'loading' 
-        ? 'bg-blue-950/30 text-blue-400 border-blue-800/30' : 
-        'bg-gray-800/30 text-gray-400 border-gray-700/30'
-      }`
-    }>
-    {connectionStatus.isLoading ? (
-      <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
-        <circle 
-          className="opacity-25" 
-          cx="12" 
-          cy="12" 
-          r="10" 
-          stroke="currentColor" 
-          strokeWidth="4" 
-          fill="none" 
-        />
-        <path 
-          className="opacity-75" 
-          fill="currentColor" 
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
-        />
-      </svg>
-    ) : (
-      <span className="flex-shrink-0">
-        {connectionStatus.type === 'error' && 
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        }
-        {connectionStatus.type === 'success' && 
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        }
-      </span>
-    )}
-        <span className="truncate">
-          {connectionStatus.message}
-        </span>
-      </div>
-    )}
-              </div>
-              <div className="flex items-center space-x-2">
-                <span>Version 1.0.0</span>
-                <a 
-                  href="https://github.com/yourusername/yourrepo" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300"
-                >
-                  GitHub
-                </a>
-              </div>
+              </button>
+              <button
+                onClick={() => setActivePanel('query')}
+                className={`px-4 py-2.5 text-sm font-medium relative ${
+                  activePanel === 'query'
+                    ? 'text-blue-400'
+                    : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7z" />
+                  </svg>
+                  <span>Query Editor</span>
+                </div>
+                {activePanel === 'query' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />
+                )}
+              </button>
             </div>
-          </footer>
+
+            {/* Resizable Handle */}
+            <div {...resizeHandleProps}>
+              <div className="w-20 h-1 rounded-full bg-gray-600 group-hover:bg-blue-500/50" />
+            </div>
+
+            {/* Panels */}
+            <div {...panelProps}>
+              {activePanel === 'ai' ? (
+                <AIChat activeConnection={connections.find(c => c.connectionId === activeConnectionId)} />
+              ) : (
+                <Query activeConnection={connections.find(c => c.connectionId === activeConnectionId)} />
+              )}
+            </div>
+
+            {/* Footer */}
+            <Footer 
+              activeConnectionId={activeConnectionId}
+              connections={connections}
+              connectionStatus={connectionStatus}
+            />
+          </div>
         </div>
       </div>
 

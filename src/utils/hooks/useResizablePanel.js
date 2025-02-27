@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-export function useResizablePanel({ initialHeight = 300, minHeight = 200 } = {}) {
+export function useResizablePanel({ initialHeight = 300, minHeight = 200, maxHeight = 500 } = {}) {
   const [panelHeight, setPanelHeight] = useState(initialHeight);
   const isDragging = useRef(false);
   const startY = useRef(0);
@@ -11,7 +11,7 @@ export function useResizablePanel({ initialHeight = 300, minHeight = 200 } = {})
       if (!isDragging.current) return;
       
       const deltaY = e.clientY - startY.current;
-      const newHeight = Math.max(minHeight, startHeight.current - deltaY);
+      const newHeight = Math.min(maxHeight, Math.max(minHeight, startHeight.current - deltaY));
       
       setPanelHeight(newHeight);
     };
@@ -29,7 +29,7 @@ export function useResizablePanel({ initialHeight = 300, minHeight = 200 } = {})
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [minHeight]);
+  }, [minHeight, maxHeight]);
 
   const handleMouseDown = (e) => {
     isDragging.current = true;

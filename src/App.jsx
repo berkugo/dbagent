@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Welcome from './pages/Welcome';
 import Dashboard from './pages/Dashboard';
 import Monitoring from './pages/Monitoring';
+import Configuration from './pages/Configuration';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastContainer } from 'react-toastify';
@@ -16,6 +17,7 @@ export default function App() {
             <Route path="/" element={<Welcome />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/monitoring" element={<Monitoring />} />
+            <Route path="/configuration" element={<Configuration />} />
           </Routes>
                   </Router>
       </ThemeProvider>
