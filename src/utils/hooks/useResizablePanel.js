@@ -1,60 +1,52 @@
 import { useState, useRef, useEffect } from 'react';
 
-export function useResizablePanel(initialHeight = 240, maxHeight = 500) {
+export function useResizablePanel({ initialHeight = 300, minHeight = 200 } = {}) {
   const [panelHeight, setPanelHeight] = useState(initialHeight);
-  const resizingRef = useRef(false);
-  const startYRef = useRef(0);
-  const startHeightRef = useRef(0);
-
-  // Calculate minimum height (10% of viewport or 80px, whichever is larger)
-  const getMinHeight = () => Math.max(window.innerHeight * 0.1, 80);
+  const isDragging = useRef(false);
+  const startY = useRef(0);
+  const startHeight = useRef(initialHeight);
 
   useEffect(() => {
-    const handleResize = () => {
-      const newMinHeight = getMinHeight();
-      if (panelHeight < newMinHeight) {
-        setPanelHeight(newMinHeight);
-      }
+    const handleMouseMove = (e) => {
+      if (!isDragging.current) return;
+      
+      const deltaY = e.clientY - startY.current;
+      const newHeight = Math.max(minHeight, startHeight.current - deltaY);
+      
+      setPanelHeight(newHeight);
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [panelHeight]);
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
+    };
 
-  const handleMouseDown = (e) => {
-    resizingRef.current = true;
-    startYRef.current = e.clientY;
-    startHeightRef.current = panelHeight;
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [minHeight]);
+
+  const handleMouseDown = (e) => {
+    isDragging.current = true;
+    startY.current = e.clientY;
+    startHeight.current = panelHeight;
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
   };
 
-  const handleMouseMove = (e) => {
-    if (!resizingRef.current) return;
-    const delta = startYRef.current - e.clientY;
-    const newHeight = Math.min(
-      Math.max(getMinHeight(), startHeightRef.current + delta),
-      maxHeight
-    );
-    setPanelHeight(newHeight);
+  const resizeHandleProps = {
+    className: "flex justify-center items-center h-6 cursor-ns-resize group",
+    onMouseDown: handleMouseDown,
   };
 
-  const handleMouseUp = () => {
-    resizingRef.current = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
+  const panelProps = {
+    style: { height: `${panelHeight}px` },
   };
 
-  return {
-    panelHeight,
-    handleMouseDown,
-    resizeHandleProps: {
-      className: "h-1 bg-[#242424] hover:bg-blue-500/20 cursor-ns-resize flex items-center justify-center group",
-      onMouseDown: handleMouseDown,
-    },
-    panelProps: {
-      style: { height: `${panelHeight}px` },
-      className: "transition-all duration-150",
-    }
-  };
+  return { panelHeight, resizeHandleProps, panelProps };
 } 

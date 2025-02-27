@@ -101,7 +101,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden">
+    <div className={`min-h-screen ${isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'}`}>
       <Sidebar />
       <div className="ml-16">
         {/* App Bar */}
@@ -163,53 +163,46 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
-          <div className="flex flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col h-[calc(100vh-3.5rem)]">
+          <div className="flex flex-1 min-h-0">
             {/* Sidebar */}
-            <aside className={`w-64 transition-all duration-300 ${
+            <aside className={`w-64 transition-all duration-300 flex flex-col ${
               isDark
               ? 'bg-[#242424] border-gray-700'
               : 'bg-white border-gray-200 shadow-sm'
             } border-r ${isSidebarOpen ? 'translate-x-0' : '-translate-x-64'}`}>
-              <div className="flex flex-col h-full">
-                <div className="p-4 border-b border-gray-700">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-gray-200 font-medium">Database Explorer</h2>
-                    <button className="p-1 text-gray-400 hover:bg-gray-700 rounded">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </button>
-                    {/* Navigation Buttons */}
-                    <button className="p-1.5 text-gray-400 hover:bg-gray-700 rounded">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    </button>
-                  </div>
-                
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search database objects..."
-                      className="w-full bg-[#242424] text-gray-200 text-sm px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+              <div className="p-4 border-b border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-gray-200 font-medium">Database Explorer</h2>
+                  <button className="p-1 text-gray-400 hover:bg-gray-700 rounded">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </button>
                 </div>
-                
-                <div className="flex-1 overflow-y-auto">
-                  <DatabaseExplorer 
-                    connectionId={activeConnectionId}
-                    onSchemaSelect={setSelectedSchema}
-                    onTableSelect={setSelectedTable}
+              
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search database objects..."
+                    className="w-full bg-[#242424] text-gray-200 text-sm px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                
+              </div>
+              
+              <div className="flex-1 overflow-auto">
+                <DatabaseExplorer 
+                  connectionId={activeConnectionId}
+                  onSchemaSelect={setSelectedSchema}
+                  onTableSelect={setSelectedTable}
+                />
               </div>
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-hidden">
+            <main className={`flex-1 overflow-auto ${
+              isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'
+            }`}>
               {/* Breadcrumb & Actions */}
               <div className="p-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-sm">
@@ -273,149 +266,66 @@ export default function Dashboard() {
                   </div>
 
                   {selectedTable && (
-                    <div className="max-h-[calc(100vh-20rem)] overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-700/50 hover:scrollbar-thumb-gray-600">
+                    <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className={`text-sm ${isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'}`}>
+                        <thead className={`text-sm ${
+                          isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'
+                        }`}>
                           <tr>
-                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                            <th className={`px-4 py-3 text-left font-medium ${
                               isDark ? 'text-gray-400' : 'text-gray-500'
                             }`}>ID</th>
-                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                            <th className={`px-4 py-3 text-left font-medium ${
                               isDark ? 'text-gray-400' : 'text-gray-500'
                             }`}>Name</th>
-                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                            <th className={`px-4 py-3 text-left font-medium ${
                               isDark ? 'text-gray-400' : 'text-gray-500'
                             }`}>Created At</th>
-                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                            <th className={`px-4 py-3 text-left font-medium ${
                               isDark ? 'text-gray-400' : 'text-gray-500'
                             }`}>Status</th>
-                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                            <th className={`px-4 py-3 text-left font-medium ${
                               isDark ? 'text-gray-400' : 'text-gray-500'
                             }`}>Type</th>
-                            <th className={`sticky top-0 px-6 py-3.5 text-left font-medium ${
+                            <th className={`px-4 py-3 text-left font-medium ${
                               isDark ? 'text-gray-400' : 'text-gray-500'
                             }`}>Count</th>
-                            <th className={`sticky top-0 px-6 py-3.5 text-right font-medium ${
-                              isDark ? 'text-gray-400' : 'text-gray-500'
-                            }`}>Actions</th>
                           </tr>
                         </thead>
-                        <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                        <tbody className="divide-y divide-gray-700">
                           {generateDummyData().map((row) => (
                             <tr 
                               key={row.id}
-                              className={`text-sm transition-colors ${
-                                isDark 
-                                  ? 'hover:bg-gray-800/50' 
-                                  : 'hover:bg-gray-50'
+                              className={`text-sm ${
+                                isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
                               }`}
                             >
-                              <td className={`px-6 py-4 ${
+                              <td className={`px-4 py-3 ${
                                 isDark ? 'text-gray-300' : 'text-gray-900'
-                              } font-medium`}>
-                                #{row.id.toString().padStart(4, '0')}
-                              </td>
-                              <td className={`px-6 py-4 ${
+                              }`}>{row.id}</td>
+                              <td className={`px-4 py-3 ${
                                 isDark ? 'text-gray-300' : 'text-gray-900'
-                              }`}>
-                                <div className="flex items-center space-x-3">
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                    isDark ? 'bg-gray-700' : 'bg-gray-100'
-                                  }`}>
-                                    <span className="text-sm font-medium">
-                                      {row.name.charAt(0).toUpperCase()}
-                                    </span>
-                                  </div>
-                                  <span>{row.name}</span>
-                                </div>
-                              </td>
-                              <td className={`px-6 py-4 ${
+                              }`}>{row.name}</td>
+                              <td className={`px-4 py-3 ${
                                 isDark ? 'text-gray-300' : 'text-gray-900'
-                              }`}>
-                                <div className="flex flex-col">
-                                  <span>{new Date(row.created_at).toLocaleDateString()}</span>
-                                  <span className={`text-xs ${
-                                    isDark ? 'text-gray-500' : 'text-gray-500'
-                                  }`}>
-                                    {new Date(row.created_at).toLocaleTimeString()}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize
+                              }`}>{new Date(row.created_at).toLocaleString()}</td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                                   ${row.status === 'active' 
-                                    ? isDark 
-                                      ? 'bg-green-500/10 text-green-400' 
-                                      : 'bg-green-100 text-green-800'
+                                    ? 'bg-green-100 text-green-800' 
                                     : row.status === 'pending'
-                                    ? isDark
-                                      ? 'bg-yellow-500/10 text-yellow-400'
-                                      : 'bg-yellow-100 text-yellow-800'
-                                    : isDark
-                                      ? 'bg-gray-500/10 text-gray-400'
-                                      : 'bg-gray-100 text-gray-800'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-gray-100 text-gray-800'
                                   }`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full mr-1.5
-                                    ${row.status === 'active' 
-                                      ? 'bg-green-400' 
-                                      : row.status === 'pending'
-                                      ? 'bg-yellow-400'
-                                      : 'bg-gray-400'
-                                    }`}
-                                  />
                                   {row.status}
                                 </span>
                               </td>
-                              <td className={`px-6 py-4 ${
+                              <td className={`px-4 py-3 ${
                                 isDark ? 'text-gray-300' : 'text-gray-900'
-                              }`}>
-                                <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium capitalize
-                                  ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                                  {row.type}
-                                </span>
-                              </td>
-                              <td className={`px-6 py-4 ${
+                              }`}>{row.type}</td>
+                              <td className={`px-4 py-3 ${
                                 isDark ? 'text-gray-300' : 'text-gray-900'
-                              }`}>
-                                <div className="flex items-center space-x-1">
-                                  <span className="font-medium">{row.count}</span>
-                                  <span className={`text-xs ${
-                                    isDark ? 'text-gray-500' : 'text-gray-500'
-                                  }`}>items</span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 text-right">
-                                <div className="flex items-center justify-end space-x-2">
-                                  <button className={`p-1.5 rounded-lg transition-colors ${
-                                    isDark 
-                                      ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300' 
-                                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
-                                  }`}>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                  </button>
-                                  <button className={`p-1.5 rounded-lg transition-colors ${
-                                    isDark 
-                                      ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300' 
-                                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
-                                  }`}>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                  </button>
-                                  <button className={`p-1.5 rounded-lg transition-colors ${
-                                    isDark 
-                                      ? 'hover:bg-red-500/10 text-red-400 hover:text-red-300' 
-                                      : 'hover:bg-red-50 text-red-500 hover:text-red-700'
-                                  }`}>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              </td>
+                              }`}>{row.count}</td>
                             </tr>
                           ))}
                         </tbody>
