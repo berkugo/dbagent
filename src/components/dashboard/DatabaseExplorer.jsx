@@ -94,80 +94,82 @@ export default function DatabaseExplorer({
 
   return (
     <div className="p-4 space-y-2">
-      <TreeItem 
-        label={connection.connectionInfo.name} 
-        icon={getDBIcon(connection.connectionInfo.type)}
-      >
-        {connection.getSchemas().map(schema => (
-          <TreeItem 
-            key={schema.name} 
-            label={schema.name} 
-            icon={<BiCube className="w-4 h-4 text-purple-400" />}
-            onClick={() => onSchemaSelect(schema.name)}
-          >
-            {/* Tables */}
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-600">
+        <TreeItem 
+          label={connection.connectionInfo.name} 
+          icon={getDBIcon(connection.connectionInfo.type)}
+        >
+          {connection.getSchemas().map(schema => (
             <TreeItem 
-              label="Tables" 
-              icon={<FaTable className="w-4 h-4 text-blue-400" />}
+              key={schema.name} 
+              label={schema.name} 
+              icon={<BiCube className="w-4 h-4 text-purple-400" />}
+              onClick={() => onSchemaSelect(schema.name)}
             >
-              {connection.getTablesBySchema(schema.name).map(table => (
-                <TreeItem 
-                  key={table.name}
-                  label={table.name} 
-                  icon={<VscSymbolClass className="w-4 h-4 text-green-400" />}
-                  onClick={() => onTableSelect(table.name)}
-                />
-              ))}
-            </TreeItem>
-
-            {/* Functions */}
-            <TreeItem 
-              label="Functions" 
-              icon={<BiCodeBlock className="w-4 h-4 text-yellow-400" />}
-            >
-              {connection.getFunctionsBySchema(schema.name).map(func => (
-                <TreeItem 
-                  key={func.name}
-                  label={`${func.name}(${func.arguments})`} 
-                  icon={<BiCodeBlock className="w-4 h-4 text-yellow-400" />}
-                />
-              ))}
-            </TreeItem>
-
-            {/* Views */}
-            {schema.views && (
+              {/* Tables */}
               <TreeItem 
-                label="Views" 
-                icon={<VscPreview className="w-4 h-4 text-indigo-400" />}
+                label="Tables" 
+                icon={<FaTable className="w-4 h-4 text-blue-400" />}
               >
-                {schema.views.map(view => (
+                {connection.getTablesBySchema(schema.name).map(table => (
                   <TreeItem 
-                    key={view.name}
-                    label={view.name} 
-                    icon={<VscPreview className="w-4 h-4 text-indigo-400" />}
+                    key={table.name}
+                    label={table.name} 
+                    icon={<VscSymbolClass className="w-4 h-4 text-green-400" />}
+                    onClick={() => onTableSelect(table.name)}
                   />
                 ))}
               </TreeItem>
-            )}
 
-            {/* Indexes */}
-            {schema.indexes && (
+              {/* Functions */}
               <TreeItem 
-                label="Indexes" 
-                icon={<FaSearch className="w-4 h-4 text-pink-400" />}
+                label="Functions" 
+                icon={<BiCodeBlock className="w-4 h-4 text-yellow-400" />}
               >
-                {schema.indexes.map(index => (
+                {connection.getFunctionsBySchema(schema.name).map(func => (
                   <TreeItem 
-                    key={index.name}
-                    label={index.name} 
-                    icon={<FaSearch className="w-4 h-4 text-pink-400" />}
+                    key={func.name}
+                    label={`${func.name}(${func.arguments})`} 
+                    icon={<BiCodeBlock className="w-4 h-4 text-yellow-400" />}
                   />
                 ))}
               </TreeItem>
-            )}
-          </TreeItem>
-        ))}
-      </TreeItem>
+
+              {/* Views */}
+              {schema.views && (
+                <TreeItem 
+                  label="Views" 
+                  icon={<VscPreview className="w-4 h-4 text-indigo-400" />}
+                >
+                  {schema.views.map(view => (
+                    <TreeItem 
+                      key={view.name}
+                      label={view.name} 
+                      icon={<VscPreview className="w-4 h-4 text-indigo-400" />}
+                    />
+                  ))}
+                </TreeItem>
+              )}
+
+              {/* Indexes */}
+              {schema.indexes && (
+                <TreeItem 
+                  label="Indexes" 
+                  icon={<FaSearch className="w-4 h-4 text-pink-400" />}
+                >
+                  {schema.indexes.map(index => (
+                    <TreeItem 
+                      key={index.name}
+                      label={index.name} 
+                      icon={<FaSearch className="w-4 h-4 text-pink-400" />}
+                    />
+                  ))}
+                </TreeItem>
+              )}
+            </TreeItem>
+          ))}
+        </TreeItem>
+      </div>
     </div>
   );
 } 

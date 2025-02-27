@@ -101,7 +101,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'}`}>
+    <div className="min-h-screen overflow-hidden">
       <Sidebar />
       <div className="ml-16">
         {/* App Bar */}
@@ -163,8 +163,8 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="flex flex-col h-[calc(100vh-3.5rem)]">
-          <div className="flex flex-1 min-h-0">
+        <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
+          <div className="flex flex-1 min-h-0 overflow-hidden">
             {/* Sidebar */}
             <aside className={`w-64 transition-all duration-300 ${
               isDark
@@ -209,9 +209,7 @@ export default function Dashboard() {
             </aside>
 
             {/* Main Content */}
-            <main className={`flex-1 overflow-auto ${
-              isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'
-            }`}>
+            <main className="flex-1 overflow-hidden">
               {/* Breadcrumb & Actions */}
               <div className="p-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-sm">
@@ -275,7 +273,7 @@ export default function Dashboard() {
                   </div>
 
                   {selectedTable && (
-                    <div className="overflow-x-auto">
+                    <div className="max-h-[calc(100vh-20rem)] overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-700/50 hover:scrollbar-thumb-gray-600">
                       <table className="w-full">
                         <thead className={`text-sm ${isDark ? 'bg-[#1C1C1C]' : 'bg-gray-50'}`}>
                           <tr>
