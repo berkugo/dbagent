@@ -46,6 +46,13 @@ class DatabaseModel {
         return schema ? schema.tables : [];
     }
 
+    getColumnsByTable(schemaName, tableName) {
+        
+        const schema = this.schemas.find(s => s.name === schemaName);
+        const table = schema?.tables.find(t => t.name === tableName);
+        return table ? table.columns : [];
+    }
+
     getFunctionsBySchema(schemaName) {
         const schema = this.schemas.find(s => s.name === schemaName);
         return schema ? schema.functions : [];
@@ -54,6 +61,19 @@ class DatabaseModel {
     disconnect() {
         this.isConnected = false;
         this.schemas = [];
+    }
+
+    updateTableData(schemaName, tableName, tableData) {
+        const schema = this.schemas.find(s => s.name === schemaName);
+        if (!schema) return;
+        
+        const table = schema.tables.find(t => t.name === tableName);
+        if (!table) return;
+        
+        // Update the table with the fetched data
+        table.columns = tableData.columns;
+        table.rows = tableData.rows;
+        table.totalRows = tableData.total_rows;
     }
 }
 

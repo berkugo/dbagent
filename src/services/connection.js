@@ -1,5 +1,5 @@
 import { listen } from '@tauri-apps/api/event';
-import DatabaseModel from '../../models/DatabaseModel';
+import DatabaseModel from '../models/DatabaseModel';
 import { v4 as uuidv4 } from 'uuid';
 
 const connections = new Map(); // Bağlantıları tutacak Map

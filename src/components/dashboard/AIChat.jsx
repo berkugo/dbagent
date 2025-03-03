@@ -40,8 +40,7 @@ export default function AIChat({ activeConnection }) {
   };
 
   return (
-    <div className="border-t border-gray-700 bg-[#1C1C1C] relative h-full flex flex-col">
-
+    <div className="border-t border-gray-700 bg-[#1C1C1C] relative h-full flex flex-col z-10">
       <div className="flex-1 flex flex-col h-full">
         <div className="flex-1 overflow-y-auto pt-14 px-4 pb-4 space-y-3">
           {messages.map((msg, idx) => (
@@ -102,8 +101,6 @@ export default function AIChat({ activeConnection }) {
                 placeholder="Ask AI to help with your query..."
                 className="flex-1 bg-[#1C1C1C] text-gray-200 rounded-lg px-4 py-2 text-sm border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-
-
               <button
                 type="submit"
                 disabled={isLoading}

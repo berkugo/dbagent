@@ -44,29 +44,35 @@ pub const GET_FUNCTIONS: &str = "
 ";
 
 pub const GET_COLUMNS: &str = "
-    SELECT 
-        a.attname as column_name,
-        format_type(a.atttypid, a.atttypmod) as data_type,
-        CASE 
-            WHEN a.attnotnull THEN false
-            ELSE true
-        END as is_nullable,
-        CASE 
-            WHEN p.contype = 'p' THEN true 
-            ELSE false 
-        END as is_primary_key,
-        CASE
-            WHEN p.contype = 'f' THEN true
-            ELSE false
-        END as is_foreign_key,
-        col_description(a.attrelid, a.attnum) as description
-    FROM pg_attribute a
-    LEFT JOIN pg_constraint p ON p.conrelid = a.attrelid 
-        AND a.attnum = ANY(p.conkey)
-    WHERE a.attrelid = $1::regclass
-    AND a.attnum > 0 
+SELECT 
+    a.attname as column_name,
+    format_type(a.atttypid, a.atttypmod) as data_type,
+    a.attnotnull as is_not_null,
+    (SELECT EXISTS (
+        SELECT 1 FROM pg_constraint c 
+        WHERE c.conrelid = a.attrelid 
+        AND c.conkey[1] = a.attnum 
+        AND c.contype = 'p'
+    )) as is_primary_key,
+    (SELECT EXISTS (
+        SELECT 1 FROM pg_constraint c 
+        WHERE c.conrelid = a.attrelid 
+        AND a.attnum = ANY(c.conkey) 
+        AND c.contype = 'f'
+    )) as is_foreign_key,
+    d.description
+FROM 
+    pg_attribute a
+    LEFT JOIN pg_description d ON d.objoid = a.attrelid AND d.objsubid = a.attnum
+    LEFT JOIN pg_class c ON c.oid = a.attrelid
+    LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE 
+    n.nspname = $1
+    AND c.relname = $2
+    AND a.attnum > 0
     AND NOT a.attisdropped
-    ORDER BY a.attnum
+ORDER BY 
+    a.attnum;
 ";
 
 pub const GET_ROW_COUNT: &str = "SELECT COUNT(*) FROM {}.{}";

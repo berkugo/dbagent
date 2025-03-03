@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use tokio_postgres::{NoTls, Error, Client, Row};
 use tauri::Manager;
 use serde_json::json;
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
 
 use crate::database_connectors::postgres::queries::*;
 
@@ -16,14 +18,14 @@ pub struct DatabaseConfig {
     db_type: String
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct TableInfo {
     schema: String,
     name: String,
     type_: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct FunctionInfo {
     schema: String,
     name: String,
@@ -31,9 +33,32 @@ struct FunctionInfo {
     arguments: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct SchemaInfo {
     name: String,
+}
+
+// Client'ları tutacak state yapısı
+pub struct ClientState {
+    pub clients: Mutex<HashMap<String, Arc<Client>>>
+}
+
+impl ClientState {
+    pub fn new() -> Self {
+        ClientState {
+            clients: Mutex::new(HashMap::new())
+        }
+    }
+    
+    pub fn add_client(&self, id: String, client: Arc<Client>) {
+        let mut clients = self.clients.lock().unwrap();
+        clients.insert(id, client);
+    }
+    
+    pub fn get_client(&self, id: &str) -> Option<Arc<Client>> {
+        let clients = self.clients.lock().unwrap();
+        clients.get(id).cloned()
+    }
 }
 
 #[tauri::command]
@@ -43,69 +68,89 @@ pub async fn connect_database(app_handle: tauri::AppHandle, config: DatabaseConf
         config.host, config.port, config.user, config.password, config.database
     );
 
-    match tokio_postgres::connect(&connection_string, NoTls).await {
-        Ok((client, connection)) => {
-            tokio::spawn(async move {
-                if let Err(e) = connection.await {
-                    eprintln!("connection error: {}", e);
-                }
-            });
+    let connection_result = tokio_postgres::connect(&connection_string, NoTls).await;
 
-            // Schema bilgilerini al
-            let schemas = match get_schemas(&client).await {
-                Ok(schemas) => schemas,
-                Err(e) => return Err(format!("Failed to get schemas: {}", e)),
+    if let Ok((client, connection)) = connection_result {
+        tokio::spawn(async move {
+            if let Err(e) = connection.await {
+                eprintln!("connection error: {}", e);
+            }
+        });
+
+        // Client'ı Arc içine al
+        let client_arc = Arc::new(client);
+        
+        // Client'ı Tauri state'ine kaydet
+        let connection_id = format!("{}:{}", config.host, config.database);
+        {
+            let state = app_handle.state::<ClientState>();
+            state.add_client(connection_id.clone(), Arc::clone(&client_arc));
+        }
+
+        // Arc içindeki client'ı kullan
+        let schemas_result = get_schemas(&client_arc).await;
+        let schemas = if let Ok(s) = schemas_result {
+            s
+        } else {
+            return Err(format!("Failed to get schemas: {}", schemas_result.unwrap_err()));
+        };
+
+        // Her schema için tablo ve fonksiyon bilgilerini al
+        let mut all_data = Vec::new();
+        for schema in schemas {
+            let tables_result = get_tables(&client_arc, &schema.name).await;
+            let tables = if let Ok(t) = tables_result {
+                t
+            } else {
+                return Err(format!("Failed to get tables: {}", tables_result.unwrap_err()));
             };
 
-            // Her schema için tablo ve fonksiyon bilgilerini al
-            let mut all_data = Vec::new();
-            for schema in schemas {
-                let tables = match get_tables(&client, &schema.name).await {
-                    Ok(tables) => tables,
-                    Err(e) => return Err(format!("Failed to get tables: {}", e)),
-                };
+            let functions_result = get_functions(&client_arc, &schema.name).await;
+            let functions = if let Ok(f) = functions_result {
+                f
+            } else {
+                return Err(format!("Failed to get functions: {}", functions_result.unwrap_err()));
+            };
 
-                let functions = match get_functions(&client, &schema.name).await {
-                    Ok(functions) => functions,
-                    Err(e) => return Err(format!("Failed to get functions: {}", e)),
-                };
-
-                all_data.push(json!({
-                    "name": config.connection_name,
-                    "host": config.host,    
-                    "port": config.port,
-                    "username": config.user,
-                    "database": config.database,
-                    "schema": schema.name,
-                    "tables": tables,
-                    "functions": functions,
-                }));
-            }
-
-            // Başarılı bağlantı ve veri durumunda tüm pencerelere event emit et
-            app_handle.emit_all("database-connection", json!({
-                "status": "success",
-                "message": "Connected successfully",
-                "data": all_data
-            })).unwrap();
-            
-            Ok("Connected successfully".to_string())
-        },
-        Err(e) => {
-            let error_message = e.to_string();
-            // Hata durumunda tüm pencerelere event emit et
-            app_handle.emit_all("database-connection", json!({
-                "status": "error",
-                "message": &error_message
-            })).unwrap();
-            
-            Err(error_message)
+            all_data.push(json!({
+                "connection_id": connection_id,
+                "name": config.connection_name,
+                "host": config.host,    
+                "port": config.port,
+                "username": config.user,
+                "database": config.database,
+                "schema": schema.name,
+                "tables": tables,
+                "functions": functions,
+            }));
         }
+
+        // Başarılı bağlantı ve veri durumunda tüm pencerelere event emit et
+        app_handle.emit_all("database-connection", json!({
+            "status": "success",
+            "message": "Connected successfully",
+            "data": all_data
+        })).unwrap();
+        
+        Ok("Connected successfully".to_string())
+    } else {
+        let error_message = match connection_result {
+            Err(e) => e.to_string(),
+            _ => "Unknown connection error".to_string()
+        };
+        
+        // Hata durumunda tüm pencerelere event emit et
+        app_handle.emit_all("database-connection", json!({
+            "status": "error",
+            "message": &error_message
+        })).unwrap();
+        
+        Err(error_message)
     }
 }
 
 #[tauri::command]
-async fn get_schemas(client: &Client) -> Result<Vec<SchemaInfo>, String> {
+async fn get_schemas(client: &Arc<Client>) -> Result<Vec<SchemaInfo>, String> {
     let rows = match client.query(GET_SCHEMAS, &[]).await {
         Ok(rows) => rows,
         Err(e) => return Err(e.to_string()),
@@ -120,7 +165,7 @@ async fn get_schemas(client: &Client) -> Result<Vec<SchemaInfo>, String> {
 }
 
 #[tauri::command]
-async fn get_tables(client: &Client, schema: &str) -> Result<Vec<TableInfo>, String> {
+async fn get_tables(client: &Arc<Client>, schema: &str) -> Result<Vec<TableInfo>, String> {
     println!("Searching for tables in schema: {}", schema);
     
     let debug_rows = match client.query(DEBUG_TABLES, &[]).await {
@@ -154,7 +199,7 @@ async fn get_tables(client: &Client, schema: &str) -> Result<Vec<TableInfo>, Str
 }
 
 #[tauri::command]
-async fn get_functions(client: &Client, schema: &str) -> Result<Vec<FunctionInfo>, String> {
+async fn get_functions(client: &Arc<Client>, schema: &str) -> Result<Vec<FunctionInfo>, String> {
     let rows = match client.query(GET_FUNCTIONS, &[&schema]).await {
         Ok(rows) => rows,
         Err(e) => return Err(e.to_string()),

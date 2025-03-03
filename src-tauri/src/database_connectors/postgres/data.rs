@@ -1,8 +1,9 @@
 use serde::Serialize;
-use tokio_postgres::Client;
 use serde_json::json;
+use tauri::{AppHandle, Manager};
 
 use crate::database_connectors::postgres::queries::*;
+use crate::database_connectors::postgres::postgres_connector::ClientState;
 
 #[derive(Serialize)]
 pub struct ColumnInfo {
@@ -23,19 +24,28 @@ pub struct TableData {
 
 #[tauri::command]
 pub async fn get_table_data(
-    client: &Client, 
+    app_handle: AppHandle,
+    connection_id: String,
     schema: &str, 
     table: &str, 
     limit: i64, 
     offset: i64
 ) -> Result<TableData, String> {
-    // Get columns
-    let table_oid = format!("{}.\"{}\""
-        , schema
-        , table.replace("\"", "\"\"")
-    );
+    println!("connection_id: {}", connection_id);
+    // Get client from state
+    let client_arc = {
+        let state = app_handle.state::<ClientState>();
+        match state.get_client(&connection_id) {
+            Some(client) => client,
+            None => return Err("Database connection not found".to_string()),
+        }
+    };
     
-    let columns = match client.query(GET_COLUMNS, &[&table_oid]).await {
+    // Get columns
+    let columns = match client_arc.query(
+        GET_COLUMNS, 
+        &[&schema, &table]  // Şema ve tablo adını ayrı parametreler olarak geçirin
+    ).await {
         Ok(rows) => rows.iter().map(|row| ColumnInfo {
             name: row.get(0),
             data_type: row.get(1),
@@ -48,22 +58,45 @@ pub async fn get_table_data(
     };
 
     // Get row count
-    let count_query = GET_ROW_COUNT.replace("{}", schema).replace("{}", table);
-    let total_rows = match client.query(&count_query, &[]).await {
+    let count_query = format!("SELECT COUNT(*) FROM {}.{}", schema, table);
+    let total_rows = match client_arc.query(&count_query, &[]).await {
         Ok(rows) => rows[0].get(0),
         Err(e) => return Err(format!("Failed to get row count: {}", e)),
     };
 
     // Get rows
-    let rows_query = GET_ROWS.replace("{}", schema).replace("{}", table);
-    let rows = match client.query(&rows_query, &[&limit, &offset]).await {
+    let rows_query = format!("SELECT * FROM {}.{} LIMIT $1 OFFSET $2", schema, table);
+    let rows = match client_arc.query(&rows_query, &[&limit, &offset]).await {
         Ok(rows) => rows.iter().map(|row| {
             let mut obj = serde_json::Map::new();
             for (i, column) in row.columns().iter().enumerate() {
-                let value = match row.try_get::<_, Option<&str>>(i) {
-                    Ok(Some(v)) => json!(v),
-                    Ok(None) => json!(null),
-                    Err(_) => json!(null),
+                let value = match column.type_() {
+                    // Metin türleri
+                    &tokio_postgres::types::Type::TEXT | 
+                    &tokio_postgres::types::Type::VARCHAR | 
+                    &tokio_postgres::types::Type::CHAR => {
+                        match row.try_get::<_, Option<String>>(i) {
+                            Ok(Some(v)) => json!(v),
+                            Ok(None) => json!(null),
+                            Err(_) => json!(null),
+                        }
+                    },
+                    // Sayısal türler
+                    &tokio_postgres::types::Type::INT4 => {
+                        match row.try_get::<_, Option<i32>>(i) {
+                            Ok(Some(v)) => json!(v),
+                            Ok(None) => json!(null),
+                            Err(_) => json!(null),
+                        }
+                    },
+                    // Diğer türler için varsayılan
+                    _ => {
+                        match row.try_get::<_, Option<String>>(i) {
+                            Ok(Some(v)) => json!(v),
+                            Ok(None) => json!(null),
+                            Err(_) => json!(null),
+                        }
+                    }
                 };
                 obj.insert(column.name().to_string(), value);
             }
