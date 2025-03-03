@@ -75,6 +75,28 @@ class DatabaseModel {
         table.rows = tableData.rows;
         table.totalRows = tableData.total_rows;
     }
+
+    updateTableColumns(schema, table, columns) {
+        if (!this.schemas) return;
+        
+        const schemaObj = this.schemas.find(s => s.name === schema);
+        if (!schemaObj) return;
+        
+        const tableObj = schemaObj.tables.find(t => t.name === table);
+        if (!tableObj) return;
+        
+        tableObj.columns = columns;
+    }
+
+    getColumnsByTable(schema, table) {
+        if (!this.schemas) return [];
+        
+        const schemaObj = this.schemas.find(s => s.name === schema);
+        if (!schemaObj) return [];
+        
+        const tableObj = schemaObj.tables.find(t => t.name === table);
+        return tableObj?.columns || [];
+    }
 }
 
 export default DatabaseModel; 

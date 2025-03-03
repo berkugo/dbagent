@@ -95,7 +95,7 @@ pub async fn connect_database(app_handle: tauri::AppHandle, config: DatabaseConf
             return Err(format!("Failed to get schemas: {}", schemas_result.unwrap_err()));
         };
 
-        // Her schema için tablo ve fonksiyon bilgilerini al
+        // Her schema için tablo, sütun ve fonksiyon bilgilerini al
         let mut all_data = Vec::new();
         for schema in schemas {
             let tables_result = get_tables(&client_arc, &schema.name).await;
@@ -104,6 +104,25 @@ pub async fn connect_database(app_handle: tauri::AppHandle, config: DatabaseConf
             } else {
                 return Err(format!("Failed to get tables: {}", tables_result.unwrap_err()));
             };
+
+            // Her tablo için sütun bilgilerini al
+            let mut tables_with_columns = Vec::new();
+            for table in &tables {
+                let columns_result = get_columns(&client_arc, &schema.name, &table.name).await;
+                let columns = if let Ok(c) = columns_result {
+                    c
+                } else {
+                    eprintln!("Failed to get columns for {}.{}: {}", schema.name, table.name, columns_result.unwrap_err());
+                    Vec::new() // Hata durumunda boş bir vektör döndür
+                };
+                
+                tables_with_columns.push(json!({
+                    "schema": table.schema,
+                    "name": table.name,
+                    "type": table.type_,
+                    "columns": columns
+                }));
+            }
 
             let functions_result = get_functions(&client_arc, &schema.name).await;
             let functions = if let Ok(f) = functions_result {
@@ -120,7 +139,7 @@ pub async fn connect_database(app_handle: tauri::AppHandle, config: DatabaseConf
                 "username": config.user,
                 "database": config.database,
                 "schema": schema.name,
-                "tables": tables,
+                "tables": tables_with_columns,
                 "functions": functions,
             }));
         }
@@ -214,4 +233,26 @@ async fn get_functions(client: &Arc<Client>, schema: &str) -> Result<Vec<Functio
             arguments: row.get(3),
         })
         .collect())
+}
+
+// Sütun bilgilerini almak için yeni fonksiyon
+#[tauri::command]
+async fn get_columns(client: &Arc<Client>, schema: &str, table: &str) -> Result<Vec<serde_json::Value>, String> {
+    let rows = match client.query(GET_COLUMNS, &[&schema, &table]).await {
+        Ok(rows) => rows,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let columns = rows.iter().map(|row| {
+        json!({
+            "name": row.get::<_, String>("column_name"),
+            "data_type": row.get::<_, String>("data_type"),
+            "is_not_null": row.get::<_, bool>("is_not_null"),
+            "is_primary_key": row.get::<_, bool>("is_primary_key"),
+            "is_foreign_key": row.get::<_, bool>("is_foreign_key"),
+            "description": row.get::<_, Option<String>>("description")
+        })
+    }).collect();
+
+    Ok(columns)
 }

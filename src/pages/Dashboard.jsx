@@ -104,7 +104,6 @@ export default function Dashboard() {
     if (activeConnectionId && selectedSchema) {
       setIsTableLoading(true);
       try {
-        console.log("activeConnectionId", activeConnectionId);
         const data = await invoker('get_table_data', { 
           client: activeConnectionId,
           connectionId: getConnection(activeConnectionId).connectionInfo.host + ":" + getConnection(activeConnectionId).connectionInfo.database,
@@ -116,7 +115,10 @@ export default function Dashboard() {
         setTableData(data);
       } catch (error) {
         console.error('Failed to fetch table data:', error);
+        // Hata durumunda tableData'yı null olarak ayarla
+        setTableData(null);
       } finally {
+        // Her durumda loading'i false yap
         setIsTableLoading(false);
       }
     }
@@ -316,8 +318,15 @@ export default function Dashboard() {
                         // Tablo seçiliyse tablo verilerini göster
                         <div className="bg-gray-800 rounded-lg border border-gray-700 h-full flex flex-col">
                           {isTableLoading ? (
-                            <div className="flex items-center justify-center h-40">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            <div className="flex flex-col items-center justify-center h-64">
+                              {/* Gelişmiş Yükleme Animasyonu */}
+                              <div className="relative w-16 h-16">
+                                <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-200 border-opacity-20 rounded-full"></div>
+                                <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
+                                <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-l-blue-300 rounded-full animate-spin" style={{ animationDuration: '1.5s' }}></div>
+                              </div>
+                              <p className="mt-4 text-blue-400 text-sm font-medium">Loading table data...</p>
+                              <p className="text-gray-500 text-xs mt-2">This may take a moment</p>
                             </div>
                           ) : tableData ? (
                             <div className="flex flex-col h-full">

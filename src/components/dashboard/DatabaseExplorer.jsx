@@ -76,14 +76,12 @@ export default function DatabaseExplorer({
   const [expandedTables, setExpandedTables] = useState({});
   const [selectedSchema, setSelectedSchema] = useState(null);
   const [selectedTable, setSelectedTable] = useState(null);
-  const [tableColumns, setTableColumns] = useState({});
   const { isDark } = useTheme();
 
   const connection = getConnection(connectionId);
 
   useEffect(() => {
     // Reset state when connection changes
-    setTableColumns({});
     setSelectedSchema(null);
     setSelectedTable(null);
   }, [connectionId]);
@@ -98,40 +96,15 @@ export default function DatabaseExplorer({
   const handleTableSelect = (tableName) => {
     setSelectedTable(tableName);
     
-    // Fetch columns if not already fetched
-    if (!tableColumns[`${selectedSchema}.${tableName}`] && selectedSchema) {
-      console.log("fetchTableColumns");
-      fetchTableColumns(selectedSchema, tableName);
-    }
-    
     if (onTableSelect) {
-      console.log("onTableSelect");
       onTableSelect(tableName);
-
     }
   };
 
-  const fetchTableColumns = async (schema, table) => {
-    try {
-      console.log("fetchTableColumns");
-      // Use the getTableData function to fetch columns and data
-      const tableData = await getTableData(connectionId.toString(), schema, table);
-      console.log("CONNECTION ID-------", connectionId);
-      console.log(tableData);
-      
-      // Update the tableColumns state
-      setTableColumns(prev => ({
-        ...prev,
-        [`${schema}.${table}`]: tableData.columns
-      }));
-      
-      // Update the DatabaseModel with the fetched data
-      if (connection) {
-        connection.updateTableData(schema, table, tableData);
-      }
-    } catch (error) {
-      console.error('Failed to fetch table columns:', error);
-    }
+  // Sütun bilgilerini doğrudan DatabaseModel'den al
+  const getColumnsForTable = (schema, table) => {
+    if (!connection) return [];
+    return connection.getColumnsByTable(schema, table);
   };
 
   if (!connection) {
@@ -158,16 +131,22 @@ export default function DatabaseExplorer({
   };
 
   const getDataTypeIcon = (dataType) => {
-    if (dataType?.includes('int') || dataType?.includes('numeric') || dataType?.includes('decimal')) {
-      return <span className="text-blue-400">#</span>;
-    } else if (dataType?.includes('varchar') || dataType?.includes('text') || dataType?.includes('char')) {
-      return <span className="text-green-400">Aa</span>;
-    } else if (dataType?.includes('date') || dataType?.includes('time')) {
-      return <span className="text-purple-400">🕒</span>;
-    } else if (dataType?.includes('bool')) {
-      return <span className="text-yellow-400">✓</span>;
+    if (!dataType) return <span className="text-gray-400">?</span>;
+    
+    if (dataType.includes('int') || dataType.includes('numeric') || dataType.includes('decimal')) {
+      return <span className="text-blue-400 font-mono text-[10px]">#</span>;
+    } else if (dataType.includes('varchar') || dataType.includes('text') || dataType.includes('char')) {
+      return <span className="text-green-400 font-mono text-[10px]">Aa</span>;
+    } else if (dataType.includes('date') || dataType.includes('time')) {
+      return <span className="text-purple-400 font-mono text-[10px]">T</span>;
+    } else if (dataType.includes('bool')) {
+      return <span className="text-yellow-400 font-mono text-[10px]">?</span>;
+    } else if (dataType.includes('json') || dataType.includes('jsonb')) {
+      return <span className="text-orange-400 font-mono text-[10px]">{}</span>;
+    } else if (dataType.includes('uuid')) {
+      return <span className="text-indigo-400 font-mono text-[10px]">ID</span>;
     } else {
-      return <span className="text-gray-400">?</span>;
+      return <span className="text-gray-400 font-mono text-[10px]">?</span>;
     }
   };
 
@@ -195,24 +174,32 @@ export default function DatabaseExplorer({
                 {/* Columns */}
                 <TreeItem
                   label="Columns"
-                  icon={<FaColumns className="w-4 h-4 text-purple-400" />}
+                  icon={<FaColumns className="w-3.5 h-3.5 text-purple-400" />}
                 >
-                  {tableColumns[`${schema.name}.${table.name}`]?.map(column => (
+                  {getColumnsForTable(schema.name, table.name).map(column => (
                     <div 
                       key={column.name}
-                      className="flex items-center space-x-1.5 px-2 py-1.5 text-gray-400 hover:bg-gray-800 rounded text-[13px] group ml-3"
+                      className="flex flex-col px-2 py-1 text-gray-400 hover:bg-gray-800 rounded text-[12px] group ml-3"
                     >
-                      <span className="w-3.5 h-3.5 flex items-center justify-center text-xs">
-                        {getDataTypeIcon(column.data_type)}
-                      </span>
-                      <span>{column.name}</span>
-                      <span className="text-xs text-gray-500 ml-auto">{column.data_type}</span>
-                      {column.is_primary_key && (
-                        <span className="text-xs text-yellow-400 ml-1">PK</span>
-                      )}
-                      {column.is_foreign_key && (
-                        <span className="text-xs text-blue-400 ml-1">FK</span>
-                      )}
+                      <div className="flex items-center space-x-1.5">
+                        <span className="w-3 h-3 flex items-center justify-center text-[10px]">
+                          {getDataTypeIcon(column.data_type)}
+                        </span>
+                        <span className="truncate max-w-[180px]">{column.name}</span>
+                        
+                        <div className="flex ml-auto">
+                          {column.is_primary_key && (
+                            <span className="text-[10px] text-yellow-400 ml-1 font-medium">PK</span>
+                          )}
+                          {column.is_foreign_key && (
+                            <span className="text-[10px] text-blue-400 ml-1 font-medium">FK</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="ml-4 text-[10px] text-gray-500 opacity-70">
+                        {column.data_type}
+                      </div>
                     </div>
                   ))}
                 </TreeItem>

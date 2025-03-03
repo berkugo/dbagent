@@ -13,6 +13,16 @@ const startListeningForConnectionEvents = (connectionStatus, setActiveConnection
             const dbModel = new DatabaseModel(connectionId);
             dbModel.setSchemaData(data[0]);
             dbModel.setConnection(data[0]);
+            
+            // Sütun bilgilerini de kaydet
+            if (data[0].tables) {
+                data[0].tables.forEach(table => {
+                    if (table.columns) {
+                        dbModel.updateTableColumns(data[0].schema, table.name, table.columns);
+                    }
+                });
+            }
+            
             // Bağlantıyı Map'e kaydet
             connections.set(connectionId, dbModel);
             setActiveConnectionId(connectionId);
