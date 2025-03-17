@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { getAllConnections } from '../../services/connection';
 import { FaDatabase, FaTable, FaColumns } from 'react-icons/fa';
+import { generateGeminiResponse } from '../../services/gemini';
 
 export default function AIChat({ activeConnection }) {
   const [messages, setMessages] = useState([]);
@@ -157,25 +158,43 @@ export default function AIChat({ activeConnection }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-
-    const userMessage = input.trim();
-    setMessages(prev => [...prev, { 
-      type: 'user', 
-      content: userMessage,
-      llm: selectedLLM 
-    }]);
+    
+    // Kullanıcı mesajını ekle
+    const userMessage = { type: 'user', content: input };
+    setMessages(prev => [...prev, userMessage]);
+    
+    // Input alanını temizle
     setInput('');
+    
+    // Yükleme durumunu başlat
     setIsLoading(true);
-
-    // Simulate AI response with selected LLM
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        type: 'ai',
-        content: `Using ${selectedLLM}: SELECT * FROM planets WHERE name = '${userMessage}';`,
-        llm: selectedLLM
+    
+    try {
+      let response;
+      
+      // Seçilen LLM'e göre farklı API'leri çağır
+      if (selectedLLM === 'gemini') {
+        // Gemini API'sini kullan
+        response = await generateGeminiResponse(userMessage.content);
+      } else {
+        // Diğer LLM'ler için mevcut API çağrılarını kullan
+        // Örnek: response = await generateDeepseekResponse(userMessage.content);
+        response = `Using ${selectedLLM}: This is a placeholder response. Implement the actual API call for ${selectedLLM}.`;
+      }
+      
+      // AI yanıtını ekle
+      setMessages(prev => [...prev, { type: 'ai', content: response }]);
+    } catch (error) {
+      console.error('Error generating response:', error);
+      // Hata mesajını ekle
+      setMessages(prev => [...prev, { 
+        type: 'ai', 
+        content: `Error: ${error.message || 'Failed to generate response'}` 
       }]);
+    } finally {
+      // Yükleme durumunu sonlandır
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   // Veritabanı öğelerini al
@@ -324,8 +343,25 @@ export default function AIChat({ activeConnection }) {
                   </div>
                 )}
                 {msg.type === 'ai' ? (
-                  <div className="font-mono text-sm whitespace-pre-wrap bg-gray-900/50 p-3 rounded border border-gray-700/50">
-                    {msg.content}
+                  <div className="font-mono text-sm whitespace-pre-wrap bg-gray-900/50 p-3 rounded border border-gray-700/50 overflow-x-auto">
+                    <pre className="text-blue-300">
+                      {msg.content.split('\n').map((line, i) => {
+                        // Yorum satırlarını farklı renkte ve stilize edilmiş şekilde göster
+                        if (line.trim().startsWith('--')) {
+                          return (
+                            <div key={i} className="text-gray-300 font-sans mb-2 pb-1 border-b border-gray-700/30">
+                              {line.replace(/^--\s*/, '')} {/* -- işaretini kaldır */}
+                            </div>
+                          );
+                        }
+                        // SQL anahtar kelimelerini vurgula
+                        const highlightedLine = line
+                          .replace(/\b(SELECT|FROM|WHERE|JOIN|ON|AND|OR|GROUP BY|ORDER BY|HAVING|LIMIT|OFFSET|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|AS|IN|BETWEEN|LIKE|IS|NULL|NOT|DISTINCT|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MIN|MAX|UNION|ALL|ANY|EXISTS)\b/gi, 
+                            match => `<span class="text-purple-400 font-semibold">${match}</span>`);
+                        
+                        return <div key={i} dangerouslySetInnerHTML={{ __html: highlightedLine }} />;
+                      })}
+                    </pre>
                   </div>
                 ) : (
                   <div className="text-sm whitespace-pre-wrap">
